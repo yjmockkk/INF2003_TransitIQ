@@ -1,7 +1,7 @@
 -- TransitIQ Bus Database Schema
 USE Transitiq;
 
--- 1. BusStop
+-- Create 'BusStop' table
 CREATE TABLE IF NOT EXISTS BusStop(
   bus_stop_code VARCHAR(10) NOT NULL,
   road_name VARCHAR(100) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS BusStop(
   PRIMARY KEY(bus_stop_code)
 );
 
--- 2. BusService
+-- Create 'BusService' table
 CREATE TABLE IF NOT EXISTS BusService (
   service_no VARCHAR(10) NOT NULL,
   direction TINYINT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS BusService (
   FOREIGN KEY(destination_code) REFERENCES BusStop(bus_stop_code)
 );
 
--- 3. BusRoute
+-- Create 'BusRoute' table
 CREATE TABLE IF NOT EXISTS BusRoute(
   service_no VARCHAR(10) NOT NULL,
   direction TINYINT NOT NULL,
