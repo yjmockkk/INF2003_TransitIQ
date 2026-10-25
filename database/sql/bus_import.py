@@ -1,27 +1,27 @@
-# 1. Import necessary libraries
+# Import necessary libraries
 import csv
 from pathlib import Path
 from getpass import getpass
 import mysql.connector
 
-# 2. Locate the dataset folder
+# Locate the dataset folder
 project_folder = Path(__file__).resolve().parents[2]
 dataset_folder = project_folder / "datasets"
 
-# 3. Function to read CSV files
+# Function to read CSV files
 def load_csv(filename):
     file_path = dataset_folder / filename
 
     with open(file_path, "r", encoding="utf-8-sig", newline="") as file:
         return list(csv.DictReader(file))
 
-# 4. Function to convert empty values to NULL
+# Function to convert empty values to NULL
 def clean_value(value):
     if value is None or value.strip() in ("", "-"):
         return None
     return value.strip()
 
-# 5. Load the three CSV datasets
+# Load the three CSV datasets
 bus_stops = load_csv("bus_stops.csv")
 bus_services = load_csv("bus_services.csv")
 bus_routes = load_csv("bus_routes.csv")
@@ -30,8 +30,7 @@ print("Bus Stops:", len(bus_stops))
 print("Bus Services:", len(bus_services))
 print("Bus Routes:", len(bus_routes))
 
-
-# 7. Connect to MySQL database
+# Connect to MySQL database
 connection = None
 cursor = None
 
@@ -47,7 +46,7 @@ try:
     cursor = connection.cursor()
     print("\nConnected to MySQL!")
 
-    # 8. Import BusStop records
+    # Import BusStop records
     insert_bus_stop = """
     INSERT INTO BusStop
     (bus_stop_code, road_name, description, latitude, longitude)
@@ -83,7 +82,7 @@ try:
     print("\nBusStop records processed:", stops_processed)
     print("BusStop records skipped:", stops_skipped)
 
-    # 9. Import BusService records
+    # Import BusService records
     insert_bus_service = """
     INSERT INTO BusService (
         service_no, direction, operator, category,
@@ -149,7 +148,7 @@ try:
     print("\nBusService records processed:", services_processed)
     print("BusService records skipped:", services_skipped)
 
-    # 10. Import BusRoute records
+    # Import BusRoute records
     insert_bus_route = """
     INSERT INTO BusRoute (
         service_no, direction, stop_seq, bus_stop_code,
@@ -235,11 +234,11 @@ try:
     print("\nBusRoute records processed:", routes_processed)
     print("BusRoute records skipped:", routes_skipped)
 
-    # 11. Save changes
+    # Save changes
     connection.commit()
     print("\nImport completed successfully!")
 
-    # 12. Verify database record counts
+    # Verify database record counts
     for table in ("BusStop", "BusService", "BusRoute"):
         cursor.execute(f"SELECT COUNT(*) FROM {table}")
         total = cursor.fetchone()[0]
@@ -254,7 +253,7 @@ except mysql.connector.Error as error:
 
 
 finally:
-    # 12. Close database connection
+    # Close database connection
     if cursor is not None:
         cursor.close()
 
