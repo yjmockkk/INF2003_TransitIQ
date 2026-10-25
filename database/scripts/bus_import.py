@@ -22,9 +22,9 @@ def clean_value(value):
     return value.strip()
 
 # Load the three CSV datasets
-bus_stops = load_csv("bus_stops.csv")
-bus_services = load_csv("bus_services.csv")
-bus_routes = load_csv("bus_routes.csv")
+bus_stops = load_csv("bus/csv/bus_stops.csv")
+bus_services = load_csv("bus/csv/bus_services.csv")
+bus_routes = load_csv("bus/csv/bus_routes.csv")
 
 print("Bus Stops:", len(bus_stops))
 print("Bus Services:", len(bus_services))
