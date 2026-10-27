@@ -1,0 +1,38 @@
+﻿Sr No,MRT/LRT Line,MRT/LRT Description,MRT/LRT Direction,Shuttle Direction
+1,CCL,Circle Line,"1) Dhoby Ghaut 
+2) Bayfront","1) Dhoby Ghaut
+2) Harbour Front"
+2,EWL,Changi Extension,"1) Changi Airport
+2) Tanah Merah","1) Changi Airport
+2) Tanah Merah"
+3,DTL,Downtown Line,"1) Expo 
+2) Bukit Panjang","1) Chinatown
+2) Bukit Panjang"
+4,EWL,East-West Line,"1) Pasir Ris 
+2) Tuas Link","1) Pasir Ris
+2) Joo Koon"
+5,NEL,North East Line,"1) Punggol
+2) HarbourFront","1) Punggol
+2) Harbour Front"
+6,NSL,North-South Line,"1) Marina South Pier
+2) Jurong East","1) Marina South Pier
+2) Jurong East"
+7,PG,Punggol LRT East Loop,"Towards Damai
+Towards Punggol","No Shuttle Activated
+Towards Punggol"
+8,PG,Punggol LRT West Loop,"Towards Soo Teck
+Towards Punggol","No Shuttle Activated
+Towards Punggol"
+9,SK,Senkang LRT East Loop,"Towards Ranggung
+Towards Sengkang","No Shuttle Activated
+Towards Ranggung"
+10,SK,Senkang LRT West Loop,"Towards Renjong
+Towards Sengkang","No Shuttle Activated
+Towards Sengkang"
+11,BP,Bukit Panjang LRT,"Towards Senja
+Towards Choa Chu Kang","No Shuttle Activated
+Towards Senja
+Towards Petir"
+12,TEL,Thomson-East Coast Line,"1) Woodlands North
+2) Gardens by the Bay","1) Woodlands North
+2) Gardens by the Bay"
