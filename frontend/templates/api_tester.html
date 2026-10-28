@@ -1,0 +1,170 @@
+<!-- DELETE ONCE FRONTEND IS IMPLEMENTED -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TransitIQ API Tester</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .row {
+        margin: 6px 0;
+      }
+      button {
+        margin-right: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      input {
+        padding: 4px;
+      }
+      pre {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 12px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      #status {
+        font-weight: bold;
+        margin: 8px 0;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      td,
+      th {
+        border: 1px solid #aaa;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>TransitIQ - Train API Tester</h2>
+
+    <div class="row">
+      <button onclick="call('/api/health')">Health check</button>
+      <button onclick="call('/api/train/lines')">GET lines</button>
+    </div>
+
+    <div class="row">
+      Search <input id="q" placeholder="e.g. bishan or 碧山" /> Line
+      <input id="line" placeholder="e.g. NSL" size="6" />
+      <button onclick="searchStations()">GET stations</button>
+    </div>
+
+    <div class="row">
+      Station code <input id="scode" value="NS17" size="8" />
+      <button onclick="call('/api/train/stations/' + v('scode'))">
+        GET station
+      </button>
+      Line code <input id="lcode" value="NSL" size="8" />
+      <button onclick="call('/api/train/lines/' + v('lcode') + '/stations')">
+        GET line stations
+      </button>
+    </div>
+
+    <h3>Create / update / delete a station</h3>
+    <div class="row">
+      Code <input id="c_code" value="TEST1" size="8" /> English
+      <input id="c_en" value="Test Station" /> Chinese
+      <input id="c_zh" value="测试站" size="8" /> Line
+      <input id="c_line" value="NSL" size="6" />
+    </div>
+    <div class="row">
+      <button onclick="send('POST', '/api/train/stations', stationBody())">
+        POST create
+      </button>
+      <button
+        onclick="
+          send('PUT', '/api/train/stations/' + v('c_code'), stationBody())
+        "
+      >
+        PUT update
+      </button>
+      <button onclick="send('DELETE', '/api/train/stations/' + v('c_code'))">
+        DELETE
+      </button>
+    </div>
+
+    <div id="status"></div>
+    <div id="table"></div>
+    <pre id="out">Click a button to call the API.</pre>
+
+    <script>
+      function v(id) {
+        return encodeURIComponent(document.getElementById(id).value.trim());
+      }
+      function raw(id) {
+        return document.getElementById(id).value.trim();
+      }
+
+      function searchStations() {
+        call("/api/train/stations?q=" + v("q") + "&line=" + v("line"));
+      }
+
+      function stationBody() {
+        return {
+          station_code: raw("c_code"),
+          station_name_english: raw("c_en"),
+          station_name_chinese: raw("c_zh"),
+          line_code: raw("c_line"),
+        };
+      }
+
+      function call(url) {
+        send("GET", url);
+      }
+
+      async function send(method, url, body) {
+        const options = { method: method, headers: {} };
+        if (body) {
+          options.headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(body);
+        }
+        const started = performance.now();
+        try {
+          const res = await fetch(url, options);
+          const json = await res.json();
+          const ms = (performance.now() - started).toFixed(0);
+          document.getElementById("status").textContent =
+            method + " " + url + "  ->  " + res.status + " (" + ms + " ms)";
+          document.getElementById("out").textContent = JSON.stringify(
+            json,
+            null,
+            2,
+          );
+          showTable(json.data);
+        } catch (err) {
+          document.getElementById("status").textContent =
+            "Request failed: " + err;
+        }
+      }
+
+      function showTable(data) {
+        const box = document.getElementById("table");
+        box.innerHTML = "";
+        if (!Array.isArray(data) || data.length === 0) return;
+        const cols = Object.keys(data[0]);
+        const table = document.createElement("table");
+        const head = table.insertRow();
+        cols.forEach((c) => {
+          const th = document.createElement("th");
+          th.textContent = c;
+          head.appendChild(th);
+        });
+        data.forEach((row) => {
+          const tr = table.insertRow();
+          cols.forEach((c) => {
+            tr.insertCell().textContent = row[c];
+          });
+        });
+        box.appendChild(table);
+      }
+    </script>
+  </body>
+</html>
