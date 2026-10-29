@@ -1,0 +1,19 @@
+# API keys and passwords
+.env
+.env.*
+!.env.example
+
+# Python temporary files
+__pycache__/
+*.pyc
+
+# Python virtual environment
+.venv/
+venv/
+
+# Local datasets
+datasets/raw/
+
+# Operating system files
+.DS_Store
+Thumbs.db

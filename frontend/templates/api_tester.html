@@ -1,0 +1,297 @@
+<!-- DELETE ONCE FRONTEND IS IMPLEMENTED -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TransitIQ API Tester</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .row {
+        margin: 6px 0;
+      }
+      button {
+        margin-right: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      input {
+        padding: 4px;
+      }
+      .tabs {
+        margin-bottom: 16px;
+      }
+      .tabs button.active {
+        background: #1565c0;
+        color: white;
+      }
+      pre {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 12px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      #status {
+        font-weight: bold;
+        margin: 8px 0;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      td,
+      th {
+        border: 1px solid #aaa;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>TransitIQ API Tester</h2>
+
+    <div class="tabs">
+      <button
+        id="train-tab"
+        class="active"
+        onclick="showTab('train')"
+      >
+        Train
+      </button>
+      <button id="bus-tab" onclick="showTab('bus')">
+        Bus
+      </button>
+    </div>
+
+    <div class="row">
+      <button onclick="call('/api/health')">Health check</button>
+    </div>
+
+    <!-- TRAIN CONTROLS -->
+    <section id="train-panel">
+      <h3>Train API</h3>
+
+      <div class="row">
+        <button onclick="call('/api/train/lines')">GET lines</button>
+      </div>
+
+      <div class="row">
+        Search <input id="q" placeholder="e.g. bishan or 碧山" />
+        Line <input id="line" placeholder="e.g. NSL" size="6" />
+        <button onclick="searchStations()">GET stations</button>
+      </div>
+
+      <div class="row">
+        Station code <input id="scode" value="NS17" size="8" />
+        <button onclick="call('/api/train/stations/' + v('scode'))">
+          GET station
+        </button>
+
+        Line code <input id="lcode" value="NSL" size="8" />
+        <button
+          onclick="call('/api/train/lines/' + v('lcode') + '/stations')"
+        >
+          GET line stations
+        </button>
+      </div>
+
+      <h3>Create / update / delete a station</h3>
+
+      <div class="row">
+        Code <input id="c_code" value="TEST1" size="8" />
+        English <input id="c_en" value="Test Station" />
+        Chinese <input id="c_zh" value="测试站" size="8" />
+        Line <input id="c_line" value="NSL" size="6" />
+      </div>
+
+      <div class="row">
+        <button onclick="send('POST', '/api/train/stations', stationBody())">
+          POST create
+        </button>
+        <button
+          onclick="send('PUT', '/api/train/stations/' + v('c_code'), stationBody())"
+        >
+          PUT update
+        </button>
+        <button onclick="send('DELETE', '/api/train/stations/' + v('c_code'))">
+          DELETE
+        </button>
+      </div>
+    </section>
+
+    <!-- BUS CONTROLS -->
+    <section id="bus-panel" hidden>
+      <h3>Bus API</h3>
+
+      <div class="row">
+        <button onclick="call('/api/bus/services')">
+          GET bus services
+        </button>
+      </div>
+
+      <div class="row">
+        Search
+        <input
+          id="bus_q"
+          placeholder="Stop code, road or stop name"
+        />
+        <button onclick="call('/api/bus/stops?q=' + v('bus_q'))">
+          GET bus stops
+        </button>
+      </div>
+
+      <div class="row">
+        Service number
+        <input id="bus_service" value="27" size="8" />
+
+        Direction
+        <select id="bus_direction">
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+
+        <button onclick="getBusRoute()">GET bus route</button>
+      </div>
+    </section>
+
+    <!-- SHARED RESULTS -->
+    <div id="status" role="status"></div>
+    <div id="table"></div>
+    <pre id="out">Click a button to call the API.</pre>
+
+    <script>
+      // Ignore responses from requests made before switching tabs
+      // or starting a newer request.
+      let requestVersion = 0;
+
+      function showTab(tab) {
+        requestVersion++;
+
+        for (const name of ["train", "bus"]) {
+          document.getElementById(name + "-panel").hidden = name !== tab;
+          document.getElementById(name + "-tab")
+            .classList.toggle("active", name === tab);
+        }
+
+        document.getElementById("status").textContent = "";
+        document.getElementById("table").replaceChildren();
+        document.getElementById("out").textContent =
+          "Click a button to call the API.";
+      }
+
+      function raw(id) {
+        return document.getElementById(id).value.trim();
+      }
+
+      function v(id) {
+        return encodeURIComponent(raw(id));
+      }
+
+      function searchStations() {
+        call("/api/train/stations?q=" + v("q") + "&line=" + v("line"));
+      }
+
+      function stationBody() {
+        return {
+          station_code: raw("c_code"),
+          station_name_english: raw("c_en"),
+          station_name_chinese: raw("c_zh"),
+          line_code: raw("c_line"),
+        };
+      }
+
+      function getBusRoute() {
+        call(
+          "/api/bus/services/" + v("bus_service") +
+          "/route?direction=" + v("bus_direction")
+        );
+      }
+
+      function call(url) {
+        return send("GET", url);
+      }
+
+      async function send(method, url, body) {
+        const version = ++requestVersion;
+        const options = { method, headers: {} };
+
+        if (body !== undefined) {
+          options.headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(body);
+        }
+
+        document.getElementById("status").textContent = "Loading...";
+        document.getElementById("table").replaceChildren();
+        document.getElementById("out").textContent = "";
+
+        const started = performance.now();
+
+        try {
+          const res = await fetch(url, options);
+          const text = await res.text();
+
+          if (version !== requestVersion) return;
+
+          const ms = (performance.now() - started).toFixed(0);
+          document.getElementById("status").textContent =
+            method + " " + url + " → " + res.status + " (" + ms + " ms)";
+
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch {
+            document.getElementById("out").textContent =
+              text || "(Empty response)";
+            return;
+          }
+
+          document.getElementById("out").textContent =
+            JSON.stringify(json, null, 2);
+
+          showTable(json.data);
+        } catch (err) {
+          if (version !== requestVersion) return;
+
+          document.getElementById("status").textContent =
+            "Request failed: " + err.message;
+        }
+      }
+
+      function showTable(data) {
+        const box = document.getElementById("table");
+        box.replaceChildren();
+
+        if (!Array.isArray(data) || data.length === 0) return;
+
+        const cols = Object.keys(data[0]);
+        const table = document.createElement("table");
+        const head = table.insertRow();
+
+        cols.forEach((c) => {
+          const th = document.createElement("th");
+          th.textContent = c;
+          head.appendChild(th);
+        });
+
+        data.forEach((row) => {
+          const tr = table.insertRow();
+
+          cols.forEach((c) => {
+            const value = row[c];
+            tr.insertCell().textContent =
+              value !== null && typeof value === "object"
+                ? JSON.stringify(value)
+                : value ?? "";
+          });
+        });
+
+        box.appendChild(table);
+      }
+    </script>
+  </body>
+</html>
