@@ -11,8 +11,10 @@ URL = (
     "ltaodataservice/PCDRealTime"
 )
 
-TRAIN_LINES = ["NSL", "EWL", "NEL", "CCL", "DTL", "TEL"]
-
+TRAIN_LINES = [
+    "CCL", "CEL", "CGL", "DTL", "EWL", "NEL",
+    "NSL", "BPL", "SLRT", "PLRT", "TEL",
+]
 
 def parse_date(value):
     if not isinstance(value, str):
@@ -54,7 +56,7 @@ def import_line(db, session, key, line):
         if not isinstance(station, str) or not station:
             raise ValueError("Invalid station code")
 
-        if level not in ("l", "m", "h"):
+        if level not in ("l", "m", "h", "NA"):
             raise ValueError("Unexpected crowd level")
 
         documents.append({

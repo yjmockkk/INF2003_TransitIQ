@@ -11,7 +11,7 @@ SCRIPTS_FOLDER = (
     / "scripts"
 )
 
-UPDATE_INTERVAL = 10 * 60
+UPDATE_INTERVAL = 15 * 60
 
 
 def crowd_summary(output):
@@ -62,7 +62,7 @@ def collect_data(stop_event):
             try:
                 result = subprocess.run(
                     [sys.executable, str(SCRIPTS_FOLDER / filename)],
-                    timeout=240,
+                    timeout=360,
                     capture_output=True,
                     text=True,
                     errors="replace",
