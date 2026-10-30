@@ -31,6 +31,6 @@ if __name__ == "__main__":
     stop_event = start_collector()
 
     try:
-        app.run(port=5050, debug=True, use_reloader=False)
+        app.run(port=5000, debug=True, use_reloader=False)
     finally:
         stop_event.set()
