@@ -4,6 +4,8 @@ import db
 from routes.train import bp as train_bp
 from routes.bus import bp as bus_bp
 
+from crowd_alert_import_scheduler import start_collector
+
 app = Flask(
     __name__,
     template_folder="../frontend/templates",
@@ -26,4 +28,9 @@ def api_tester():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    stop_event = start_collector()
+
+    try:
+        app.run(port=5050, debug=True, use_reloader=False)
+    finally:
+        stop_event.set()

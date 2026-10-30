@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import requests
 
 from mongo_db import connect_database
+from lta_api_request_handler import fetch_lta
 
 URL = (
     "https://datamall2.mytransport.sg/"
@@ -13,61 +14,90 @@ URL = (
 )
 
 
+def import_alerts(db, session, key):
+    response_data = fetch_lta(
+        URL,
+        key,
+        session=session,
+    )
+
+    payload = response_data["value"]
+
+    if not isinstance(payload, dict):
+        raise ValueError("Unexpected train service response")
+
+    status = str(payload.get("Status"))
+
+    if status not in ("1", "2"):
+        raise ValueError("Unexpected train service status")
+
+    # Compare the complete service-status content.
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+    fetched_at = datetime.now(timezone.utc)
+
+    latest = db.TrainServiceAlert.find_one(
+        {"fingerprint": {"$exists": True}},
+        sort=[("fetched_at", -1)],
+    )
+
+    if latest and latest["fingerprint"] == fingerprint:
+        db.TrainServiceAlert.update_one(
+            {"_id": latest["_id"]},
+            {"$max": {"last_seen_at": fetched_at}},
+        )
+
+        print(
+            "Train alerts: response unchanged; "
+            "last confirmed time updated",
+            flush=True,
+        )
+
+    else:
+        db.TrainServiceAlert.insert_one({
+            "source": "LTA DataMall",
+            "status": status,
+            "payload": payload,
+            "fingerprint": fingerprint,
+            "fetched_at": fetched_at,
+            "last_seen_at": fetched_at,
+        })
+
+        print(
+            "Train alerts: new service-status snapshot saved",
+            flush=True,
+        )
+
+
 def main():
-    key = os.getenv("LTA_ACCOUNT_KEY")
+    key = os.getenv("LTA_ACCOUNT_KEY", "").strip()
+
     if not key:
         raise SystemExit("Missing LTA_ACCOUNT_KEY in backend/.env")
 
-    with connect_database() as db:
-        response = requests.get(
-            URL,
-            headers={
-                "AccountKey": key,
-                "Accept": "application/json",
-            },
-            timeout=20,
-        )
-        response.raise_for_status()
+    with connect_database() as db, requests.Session() as session:
+        try:
+            import_alerts(db, session, key)
 
-        payload = response.json()["value"]
-
-        if (
-            not isinstance(payload, dict)
-            or str(payload.get("Status")) not in ("1", "2")
-        ):
-            raise ValueError("Unexpected train service response")
-
-        fingerprint = hashlib.sha256(
-            json.dumps(
-                payload,
-                sort_keys=True,
-                separators=(",", ":"),
-            ).encode()
-        ).hexdigest()
-
-        now = datetime.now(timezone.utc)
-
-        latest = db.TrainServiceAlert.find_one(
-            {"fingerprint": {"$exists": True}},
-            sort=[("fetched_at", -1)],
-        )
-
-        if latest and latest["fingerprint"] == fingerprint:
-            db.TrainServiceAlert.update_one(
-                {"_id": latest["_id"]},
-                {"$max": {"last_seen_at": now}},
+        except (
+            requests.RequestException,
+            ValueError,
+            KeyError,
+            TypeError,
+        ) as error:
+            print(
+                f"Train alerts: import failed "
+                f"({type(error).__name__})",
+                flush=True,
             )
-            print("Service status unchanged; last confirmed time updated.")
-        else:
-            db.TrainServiceAlert.insert_one({
-                "source": "LTA DataMall",
-                "status": str(payload["Status"]),
-                "payload": payload,
-                "fingerprint": fingerprint,
-                "fetched_at": now,
-                "last_seen_at": now,
-            })
-            print("New service-status snapshot saved.")
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":
