@@ -31,8 +31,11 @@ mongodb://localhost:27017
 
 5. Import the Data
     From the project root, run:
+
+        ```powershell
         python database/scripts/density_import.py
         python database/scripts/alerts_import.py
+        ```
 
     The scripts automatically create:
     TransitIQ
