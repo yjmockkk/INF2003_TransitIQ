@@ -28,6 +28,10 @@ def health():
 def api_tester():
     return render_template("api_tester.html")
 
+@app.get("/crowd-dashboard")
+def crowd_dashboard():
+    return render_template("crowd_dashboard.html")
+
 
 if __name__ == "__main__":
     stop_event = start_collector()
