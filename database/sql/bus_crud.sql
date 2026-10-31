@@ -1,14 +1,10 @@
--- TransitIQ Bus Database Queries
+-- TransitIQ Bus Database Queries - CRUD Operations
 USE Transitiq;
-
--- ==================================
--- 1. CRUD OPERATIONS
--- ==================================
 
 START TRANSACTION;
 
 -- ----------------------------------
--- 1.1 CREATE: Insert test records
+-- CREATE: Insert test records
 -- ----------------------------------
 
 -- BusStop
@@ -45,7 +41,7 @@ VALUES
 
 
 -- ----------------------------------
--- 1.2 READ: Retrieve test records
+-- READ: Retrieve test records
 -- ----------------------------------
 
 -- BusStop
@@ -63,7 +59,7 @@ ORDER BY stop_seq;
 
 
 -- ----------------------------------
--- 1.3 UPDATE: Modify test records
+-- UPDATE: Modify test records
 -- ----------------------------------
 
 -- BusStop
@@ -95,7 +91,7 @@ ORDER BY stop_seq;
 
 
 -- ----------------------------------
--- 1.4 DELETE: Remove test records
+-- DELETE: Remove test records
 -- ----------------------------------
 
 -- Delete child records before parent records
@@ -114,14 +110,6 @@ WHERE bus_stop_code IN ('TEST01', 'TEST02');
 
 
 -- ----------------------------------
--- 1.5 ROLLBACK: Undo test changes
+-- ROLLBACK: Undo test changes
 -- ----------------------------------
 ROLLBACK;
-
-
-
--- ==================================
--- 2. ADVANCED SQL QUERIES
--- ==================================
-
--- TO BE DONE
