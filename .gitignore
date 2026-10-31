@@ -17,3 +17,6 @@ datasets/raw/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local API rate-limit cache
+.cache/
