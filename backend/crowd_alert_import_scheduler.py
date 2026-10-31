@@ -45,10 +45,26 @@ def alerts_summary(output):
     return "Alerts: no result reported"
 
 
+def bus_summary(output):
+    matches = re.findall(
+        r"^\d+ \(.+\): (\d+) services saved$",
+        output,
+        flags=re.MULTILINE,
+    )
+
+    if not matches:
+        return "Bus: no arrivals reported"
+
+    services = sum(int(match) for match in matches)
+
+    return f"Bus: {len(matches)} stops, {services} services saved"
+
+
 def collect_data(stop_event):
     jobs = (
         ("density_import.py", "Crowd", crowd_summary),
         ("alerts_import.py", "Alerts", alerts_summary),
+        ("bus_arrival_import.py", "Bus", bus_summary),
     )
 
     while not stop_event.is_set():
@@ -120,4 +136,4 @@ def start_collector():
     )
     worker.start()
 
-    return stop_event
+    return stop_event
