@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Station Crowd Levels</title>
+</head>
+
+<body>
+    <a href="/">Back to API Tester</a>
+    <h1>Station Crowd Levels</h1>
+
+    <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
+    <p>Data is collected approximately every 15 minutes.</p>
+
+    <p>
+        <label for="line">Train line:</label>
+        <select id="line">
+            <option value="">All lines</option>
+            <option value="CCL">Circle Line</option>
+            <option value="CEL">Circle Line Extension</option>
+            <option value="CGL">Changi Extension</option>
+            <option value="DTL">Downtown Line</option>
+            <option value="EWL">East West Line</option>
+            <option value="NEL">North East Line</option>
+            <option value="NSL">North South Line</option>
+            <option value="BPL">Bukit Panjang LRT</option>
+            <option value="SLRT">Sengkang LRT</option>
+            <option value="PLRT">Punggol LRT</option>
+            <option value="TEL">Thomson-East Coast Line</option>
+        </select>
+
+        <label for="station">Station code:</label>
+        <input id="station" type="search" placeholder="e.g. NS17">
+
+        <label for="crowd">Crowd level:</label>
+        <select id="crowd">
+            <option value="">All levels</option>
+            <option value="l">Low</option>
+            <option value="m">Moderate</option>
+            <option value="h">High</option>
+            <option value="NA">Not available</option>
+        </select>
+
+        <button id="reset" type="button">Clear filters</button>
+        <button id="refresh" type="button">Refresh</button>
+    </p>
+
+    <p id="message" role="status">Loading station information...</p>
+    <p id="refresh-time"></p>
+
+    <p id="summary"></p>
+
+    <div style="overflow-x: auto;">
+        <table border="1" cellpadding="10" cellspacing="0">
+            <thead>
+                <tr>
+                    <th scope="col">Station code</th>
+                    <th scope="col">Train line</th>
+                    <th scope="col">Crowd level</th>
+                    <th scope="col">Observation period</th>
+                    <th scope="col">Last collected</th>
+                </tr>
+            </thead>
+            <tbody id="results"></tbody>
+        </table>
+    </div>
+
+    <p>All times are shown in Singapore time.</p>
+    <p>
+        “Not available” means the source has no crowd level available.
+        It does not mean the station is uncrowded.
+    </p>
+
+    <script>
+        const lineNames = {
+            CCL: "Circle Line",
+            CEL: "Circle Line Extension",
+            CGL: "Changi Extension",
+            DTL: "Downtown Line",
+            EWL: "East West Line",
+            NEL: "North East Line",
+            NSL: "North South Line",
+            BPL: "Bukit Panjang LRT",
+            SLRT: "Sengkang LRT",
+            PLRT: "Punggol LRT",
+            TEL: "Thomson-East Coast Line"
+        };
+
+        const crowdNames = {
+            l: "Low",
+            m: "Moderate",
+            h: "High",
+            NA: "Not available"
+        };
+
+        const results = document.getElementById("results");
+        const message = document.getElementById("message");
+        const summary = document.getElementById("summary");
+
+        let observations = [];
+        let loading = false;
+        let hasLoaded = false;
+
+        function formatTime(value) {
+            if (!value) return "Not available";
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                return "Not available";
+            }
+
+            return date.toLocaleString("en-SG", {
+                timeZone: "Asia/Singapore",
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true
+            });
+        }
+
+        function displayRows() {
+            const line = document.getElementById("line").value;
+            const station = document.getElementById("station")
+                .value.trim().toUpperCase();
+            const crowd = document.getElementById("crowd").value;
+
+            const filtered = observations.filter(item =>
+                (!line || item.line_code === line) &&
+                (!station || item.station_code.toUpperCase().includes(station)) &&
+                (!crowd || item.crowd_level === crowd)
+            );
+
+            filtered.sort((a, b) =>
+                a.line_code.localeCompare(b.line_code) ||
+                a.station_code.localeCompare(
+                    b.station_code,
+                    "en",
+                    { numeric: true }
+                )
+            );
+
+            results.replaceChildren();
+
+            for (const item of filtered) {
+                const row = document.createElement("tr");
+
+                const values = [
+                    item.station_code,
+                    lineNames[item.line_code] || item.line_code,
+                    crowdNames[item.crowd_level] || "Not available",
+                    `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`,
+                    formatTime(item.fetched_at)
+                ];
+
+                for (const value of values) {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                }
+
+                results.appendChild(row);
+            }
+
+            if (!filtered.length) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+
+                cell.colSpan = 5;
+                cell.textContent = hasLoaded
+                    ? "No station observations match your selection."
+                    : "No station information loaded yet.";
+
+                row.appendChild(cell);
+                results.appendChild(row);
+            }
+
+            const counts = { l: 0, m: 0, h: 0, NA: 0 };
+
+            for (const item of filtered) {
+                const level = Object.hasOwn(counts, item.crowd_level)
+                    ? item.crowd_level
+                    : "NA";
+
+                counts[level]++;
+            }
+
+            summary.textContent =
+                `Showing ${filtered.length} station readings: ` +
+                `${counts.l} Low | ` +
+                `${counts.m} Moderate | ` +
+                `${counts.h} High | ` +
+                `${counts.NA} Not available`;
+        }
+
+        async function refreshData() {
+            if (loading) return;
+
+            loading = true;
+            document.getElementById("refresh").disabled = true;
+            message.textContent = "Loading station information...";
+
+            try {
+                const response = await fetch("/api/crowd/latest", {
+                    cache: "no-store"
+                });
+
+                const body = await response.json();
+
+                if (!response.ok) {
+                    throw new Error("Unable to load station information.");
+                }
+
+                if (!Array.isArray(body.data)) {
+                    throw new Error("Unexpected station information received.");
+                }
+
+                observations = body.data;
+                hasLoaded = true;
+                displayRows();
+
+                message.textContent = "";
+                document.getElementById("refresh-time").textContent =
+                    "Display refreshed: " + formatTime(new Date());
+
+            } catch (error) {
+                message.textContent = hasLoaded
+                    ? "Could not refresh. Previously loaded information is still shown."
+                    : "Station information is unavailable. Please try again.";
+
+            } finally {
+                loading = false;
+                document.getElementById("refresh").disabled = false;
+            }
+        }
+
+        document.getElementById("line")
+            .addEventListener("change", displayRows);
+
+        document.getElementById("crowd")
+            .addEventListener("change", displayRows);
+
+        document.getElementById("station")
+            .addEventListener("input", displayRows);
+
+        document.getElementById("reset").addEventListener("click", () => {
+            document.getElementById("line").value = "";
+            document.getElementById("station").value = "";
+            document.getElementById("crowd").value = "";
+            displayRows();
+        });
+
+        document.getElementById("refresh")
+            .addEventListener("click", refreshData);
+
+        setInterval(() => {
+            if (!document.hidden) refreshData();
+        }, 60000);
+
+        refreshData();
+    </script>
+</body>
+</html>
