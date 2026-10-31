@@ -7,7 +7,7 @@ Two Python scripts load the datasets into the `Transitiq` MySQL database:
 | `bus_import.py` | `BusStop`, `BusService`, `BusRoute` | `datasets/bus/csv/bus_stops.csv`, `bus_services.csv`, `bus_routes.csv` |
 | `import_train_data.py` | `TrainLine`, `TrainStation`, `StationLine` | `datasets/train/csv/train_stations.csv`, `train_lines.csv` |
 
-The bus data comes from the LTA DataMall static datasets. The train CSVs were saved from `Train-Station-Codes-and-Chinese-Names.xls` and `Train-Line-Codes.xlsx`.
+The bus data comes as JSON samples from the LTA DataMall static datasets and supplemented with more comprehensive CSV datasets sourced from Kaggle to support the relational database implementation. The train CSV datasets were converted from the original `Train-Station-Codes-and-Chinese-Names.xls` and `Train-Line-Codes.xlsx`.
 
 ### Prerequisites
 
