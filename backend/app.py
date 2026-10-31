@@ -2,6 +2,9 @@ from flask import Flask, jsonify, render_template
 
 import db
 from routes.train import bp as train_bp
+from routes.bus import bp as bus_bp
+
+from crowd_alert_import_scheduler import start_collector
 
 app = Flask(
     __name__,
@@ -10,6 +13,7 @@ app = Flask(
 )
 app.json.ensure_ascii = False   # show Chinese characters as-is in JSON
 app.register_blueprint(train_bp)
+app.register_blueprint(bus_bp)
 
 
 @app.get("/api/health")
@@ -24,4 +28,9 @@ def api_tester():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    stop_event = start_collector()
+
+    try:
+        app.run(port=5000, debug=True, use_reloader=False)
+    finally:
+        stop_event.set()
