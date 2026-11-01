@@ -136,4 +136,4 @@ def start_collector():
     )
     worker.start()
 
-    return stop_event
+    return stop_event

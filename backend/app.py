@@ -3,6 +3,7 @@ from flask import Flask, jsonify, render_template
 import db
 from routes.train import bp as train_bp
 from routes.bus import bp as bus_bp
+from routes.crowd import bp as crowd_bp
 from routes.bus_arrival import bp as bus_arrival_bp
 
 from crowd_alert_import_scheduler import start_collector
@@ -15,6 +16,7 @@ app = Flask(
 app.json.ensure_ascii = False   # show Chinese characters as-is in JSON
 app.register_blueprint(train_bp)
 app.register_blueprint(bus_bp)
+app.register_blueprint(crowd_bp)
 app.register_blueprint(bus_arrival_bp)
 
 
@@ -28,6 +30,10 @@ def health():
 def api_tester():
     return render_template("api_tester.html")
 
+@app.get("/crowd-dashboard")
+def crowd_dashboard():
+    return render_template("crowd_dashboard.html")
+
 
 if __name__ == "__main__":
     stop_event = start_collector()
@@ -35,4 +41,4 @@ if __name__ == "__main__":
     try:
         app.run(port=5000, debug=True, use_reloader=False)
     finally:
-        stop_event.set()
+        stop_event.set()
