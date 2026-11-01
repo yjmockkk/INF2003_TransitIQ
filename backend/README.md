@@ -33,24 +33,21 @@ To confirm the install worked:
 
     python -c "import flask, mysql.connector, dotenv; print('ok')"
 
-### Step 2: Create your `.env` file
+### Step 2: Create your own `.env` file
+The `.env` file stores **your own** MySQL login details. It is not included in the repository, so each member must create it on their own computer. Do not copy the example `.env.example`, because the password, port and username may not match your MySQL setup.
 
-1. In `backend/`, copy `.env.example` and name the copy `.env`.
-2. Fill in your own MySQL details:
+1. In `backend/`, make a copy of `.env.example` and name the copy `.env`. You should now have both files side by side.
+2. Open `.env` and fill each value with the details of **your** MySQL server:
 
-       DB_HOST=localhost
-       DB_PORT=3306
-       DB_USER=root
+       DB_HOST=your_host
+       DB_PORT=your_port
+       DB_USER=your_user
        DB_PASSWORD=your_mysql_password
-       DB_NAME=Transitiq
-
-3. Set `DB_PORT` to the port your MySQL 8.0 server uses. To check it, run this in MySQL Workbench:
-
-       SELECT @@port, VERSION();
+       DB_NAME=your_name
 
 ### Step 3: Start the API
 
-From the `backend/` folder:
+In the `backend/` folder:
 
     python app.py
 
