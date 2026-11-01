@@ -11,8 +11,8 @@ URL = (
     "ltaodataservice/v3/BusArrival"
 )
 
-# Bus interchanges spread across Singapore
 BUS_STOPS = {
+    # Bus interchanges spread across Singapore (good for waiting times)
     "46009": "Woodlands Int",
     "54009": "Ang Mo Kio Int",
     "67009": "Sengkang Int",
@@ -20,6 +20,12 @@ BUS_STOPS = {
     "52009": "Toa Payoh Int",
     "22009": "Boon Lay Int",
     "14009": "HarbourFront Int",
+
+    # Busy stops in the middle of routes (good for crowding, since
+    # buses leaving an interchange are almost always empty)
+    "08057": "Dhoby Ghaut Stn",
+    "09047": "Orchard Stn/Tang Plaza",
+    "17171": "Clementi Stn",
 }
 
 
