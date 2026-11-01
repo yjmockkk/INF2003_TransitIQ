@@ -216,6 +216,43 @@ def crowding(stop_code):
     return jsonify({"data": rows, "count": len(rows), "hours": hours})
 
 
+# ---------- UPDATE ----------
+# Example: PUT /api/bus-arrivals/75009/name
+# Body: {"bus_stop_name": "Tampines Bus Interchange"}
+# Rename a stop in every snapshot saved for it.
+@bp.put("/<stop_code>/name")
+def rename_stop(stop_code):
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
+
+    new_name = str(payload.get("bus_stop_name", "")).strip()
+
+    if not new_name:
+        return jsonify({"error": "'bus_stop_name' is required"}), 400
+
+    if len(new_name) > 100:
+        return jsonify({"error": "'bus_stop_name' must be at most 100 characters"}), 400
+
+    result = arrivals.update_many(
+        {"bus_stop_code": stop_code},
+        {"$set": {"bus_stop_name": new_name}},
+    )
+
+    if result.matched_count == 0:
+        return jsonify({"error": "No arrival data for this stop"}), 404
+
+    return jsonify({
+        "data": {
+            "bus_stop_code": stop_code,
+            "bus_stop_name": new_name,
+            "snapshots_matched": result.matched_count,
+            "snapshots_updated": result.modified_count,
+        }
+    })
+
+
 # ---------- DELETE ----------
 # Example: DELETE /api/bus-arrivals/old?days=7
 # Remove snapshots older than the given number of days.
