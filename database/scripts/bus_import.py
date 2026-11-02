@@ -1,36 +1,113 @@
 # Import necessary libraries
-import csv
-from pathlib import Path
+import os
+import requests
+from decimal import Decimal, InvalidOperation
 from getpass import getpass
 import mysql.connector
 
-# Locate the dataset folder
-project_folder = Path(__file__).resolve().parents[2]
-dataset_folder = project_folder / "datasets"
+# LTA DataMall API settings
+BASE_URL = "https://datamall2.mytransport.sg/ltaodataservice"
+PAGE_SIZE = 500
 
-# Function to read CSV files
-def load_csv(filename):
-    file_path = dataset_folder / filename
+# Retrieve complete bus datasets from LTA DataMall
+def load_lta_api(dataset_name, api_key):
+    url = f"{BASE_URL}/{dataset_name}"
 
-    with open(file_path, "r", encoding="utf-8-sig", newline="") as file:
-        return list(csv.DictReader(file))
+    headers = {
+        "AccountKey": api_key
+    }
 
-# Function to convert empty values to NULL
+    all_records = []
+    skip = 0
+
+    while True:
+        response = requests.get(
+            url,
+            headers=headers,
+            params={"$skip": skip},
+            timeout=30
+        )
+
+        response.raise_for_status()
+
+        records = response.json()["value"]
+
+        if not isinstance(records, list):
+            raise ValueError(f"Invalid response for {dataset_name}")
+
+        all_records.extend(records)
+
+        print(
+            f"{dataset_name}: retrieved "
+            f"{len(all_records)} records so far"
+        )
+
+        if len(records) < PAGE_SIZE:
+            break
+
+        skip += PAGE_SIZE
+
+    if not all_records:
+        raise ValueError(f"No records retrieved for {dataset_name}")
+
+    return all_records
+
+# Convert empty values to SQL NULL
 def clean_value(value):
-    if value is None or value.strip() in ("", "-"):
+    if value is None:
         return None
-    return value.strip()
 
-# Load the three CSV datasets
-bus_stops = load_csv("bus/csv/bus_stops.csv")
-bus_services = load_csv("bus/csv/bus_services.csv")
-bus_routes = load_csv("bus/csv/bus_routes.csv")
+    value = str(value).strip()
 
+    if value in ("", "-"):
+        return None
+
+    return value
+
+# Validate numeric values
+def clean_number(value):
+    value = clean_value(value)
+
+    if value is None:
+        return None
+
+    try:
+        number = Decimal(value)
+
+        if not number.is_finite():
+            return None
+
+        return number
+
+    except InvalidOperation:
+        return None
+
+# Retrieve datasets before connecting to MySQL
+api_key = os.getenv("LTA_API_KEY")
+
+if not api_key:
+    raise SystemExit("LTA_API_KEY is not set.")
+
+try:
+    print("\n=== Retrieving LTA DataMall Datasets ===")
+
+    bus_stops = load_lta_api("BusStops", api_key)
+    bus_services = load_lta_api("BusServices", api_key)
+    bus_routes = load_lta_api("BusRoutes", api_key)
+
+except (
+    requests.exceptions.RequestException,
+    ValueError,
+    KeyError
+) as error:
+    raise SystemExit(f"LTA API error: {error}")
+
+print("\n=== Main Dataset: LTA DataMall API ===")
 print("Bus Stops:", len(bus_stops))
 print("Bus Services:", len(bus_services))
 print("Bus Routes:", len(bus_routes))
 
-# Connect to MySQL database
+# Connect to MySQL
 connection = None
 cursor = None
 
@@ -46,10 +123,27 @@ try:
     cursor = connection.cursor()
     print("\nConnected to MySQL!")
 
+    # Start with fresh bus data for each import
+    print("\n=== Clearing Existing Bus Data ===")
+    connection.start_transaction()
+
+    cursor.execute("DELETE FROM BusRoute")
+    cursor.execute("DELETE FROM BusService")
+    cursor.execute("DELETE FROM BusStop")
+
+    print("Existing bus records cleared.")
+
     # Import BusStop records
+    print("\n=== LTA DataMall API: BusStop ===")
+
     insert_bus_stop = """
-    INSERT INTO BusStop
-    (bus_stop_code, road_name, description, latitude, longitude)
+    INSERT INTO BusStop (
+        bus_stop_code,
+        road_name,
+        description,
+        latitude,
+        longitude
+    )
     VALUES (%s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
         road_name = VALUES(road_name),
@@ -64,31 +158,69 @@ try:
 
     for stop in bus_stops:
         try:
+            stop_code = clean_value(stop.get("BusStopCode"))
+            road_name = clean_value(stop.get("RoadName"))
+            description = clean_value(stop.get("Description"))
+            latitude = clean_number(stop.get("Latitude"))
+            longitude = clean_number(stop.get("Longitude"))
+
+            # Check required values and identify missing fields
+            required_fields = {
+                "BusStopCode": stop_code,
+                "RoadName": road_name,
+                "Description": description,
+                "Latitude": latitude,
+                "Longitude": longitude
+            }
+
+            missing_fields = [
+                field for field, value in required_fields.items()
+                if value is None
+            ]
+
+            if missing_fields:
+                print(
+                    "Skipping BusStop:",
+                    stop_code,
+                    "- missing fields:",
+                    ", ".join(missing_fields)
+                )
+                stops_skipped += 1
+                continue
+
             cursor.execute(insert_bus_stop, (
-                stop["BusStopCode"],
-                stop["RoadName"],
-                stop["Description"],
-                stop["Latitude"],
-                stop["Longitude"]
+                stop_code,
+                road_name,
+                description,
+                latitude,
+                longitude
             ))
 
-            valid_stops.add(stop["BusStopCode"])
+            valid_stops.add(stop_code)
             stops_processed += 1
 
-        except (ValueError, mysql.connector.Error) as error:
-            print("Skipping BusStop:", stop["BusStopCode"], error)
-            stops_skipped += 1
+        except mysql.connector.Error as error:
+            print("BusStop import failed:", stop.get("BusStopCode"), error)
+            raise
 
-    print("\nBusStop records processed:", stops_processed)
-    print("BusStop records skipped:", stops_skipped)
+    print("Records inserted or updated:", stops_processed)
+    print("Records skipped:", stops_skipped)
 
     # Import BusService records
+    print("\n=== LTA DataMall API: BusService ===")
+
     insert_bus_service = """
     INSERT INTO BusService (
-        service_no, direction, operator, category,
-        origin_code, destination_code,
-        am_peak_freq, am_offpeak_freq,
-        pm_peak_freq, pm_offpeak_freq
+        service_no,
+        direction,
+        operator,
+        category,
+        origin_code,
+        destination_code,
+        am_peak_freq,
+        am_offpeak_freq,
+        pm_peak_freq,
+        pm_offpeak_freq
     )
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
@@ -108,19 +240,50 @@ try:
 
     for service in bus_services:
         try:
-            service_no = service["ServiceNo"]
-            direction = int(service["Direction"])
+            service_no = clean_value(service.get("ServiceNo"))
+            direction_value = clean_value(service.get("Direction"))
+            operator = clean_value(service.get("Operator"))
+            category = clean_value(service.get("Category"))
+            origin = clean_value(service.get("OriginCode"))
+            destination = clean_value(service.get("DestinationCode"))
 
-            origin = clean_value(service["OriginCode"])
-            destination = clean_value(service["DestinationCode"])
+            # Check required values and identify missing fields
+            required_fields = {
+                "ServiceNo": service_no,
+                "Direction": direction_value,
+                "Operator": operator,
+                "Category": category,
+                "OriginCode": origin,
+                "DestinationCode": destination
+            }
+
+            missing_fields = [
+                field for field, value in required_fields.items()
+                if value is None
+            ]
+
+            if missing_fields:
+                print(
+                    "Skipping BusService:",
+                    service_no,
+                    "- missing fields:",
+                    ", ".join(missing_fields)
+                )
+                services_skipped += 1
+                continue
+
+            direction = int(direction_value)
 
             # Check foreign-key references
-            if origin not in valid_stops or destination not in valid_stops:
+            if (
+                origin not in valid_stops
+                or destination not in valid_stops
+            ):
                 print(
                     "Skipping BusService:",
                     service_no,
                     "Direction:", direction,
-                    "- missing bus stop"
+                    "- missing origin or destination bus stop"
                 )
                 services_skipped += 1
                 continue
@@ -128,8 +291,8 @@ try:
             cursor.execute(insert_bus_service, (
                 service_no,
                 direction,
-                service["Operator"],
-                service["Category"],
+                operator,
+                category,
                 origin,
                 destination,
                 clean_value(service.get("AM_Peak_Freq")),
@@ -141,20 +304,33 @@ try:
             valid_services.add((service_no, direction))
             services_processed += 1
 
-        except (ValueError, mysql.connector.Error) as error:
+        except ValueError as error:
             print("Skipping BusService:", service.get("ServiceNo"), error)
             services_skipped += 1
 
-    print("\nBusService records processed:", services_processed)
-    print("BusService records skipped:", services_skipped)
+        except mysql.connector.Error as error:
+            print("BusService import failed:", service.get("ServiceNo"), error)
+            raise
+
+    print("Records inserted or updated:", services_processed)
+    print("Records skipped:", services_skipped)
 
     # Import BusRoute records
+    print("\n=== LTA DataMall API: BusRoute ===")
+
     insert_bus_route = """
     INSERT INTO BusRoute (
-        service_no, direction, stop_seq, bus_stop_code,
-        distance, wd_first_bus, wd_last_bus,
-        sat_first_bus, sat_last_bus,
-        sun_first_bus, sun_last_bus
+        service_no,
+        direction,
+        stop_seq,
+        bus_stop_code,
+        distance,
+        wd_first_bus,
+        wd_last_bus,
+        sat_first_bus,
+        sat_last_bus,
+        sun_first_bus,
+        sun_last_bus
     )
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
@@ -173,11 +349,38 @@ try:
 
     for route in bus_routes:
         try:
-            service_no = route["ServiceNo"]
-            direction = int(route["Direction"])
-            stop_seq = int(route["StopSequence"])
-            bus_stop_code = route["BusStopCode"]
-            distance = clean_value(route["Distance"])
+            service_no = clean_value(route.get("ServiceNo"))
+            direction_value = clean_value(route.get("Direction"))
+            sequence_value = clean_value(route.get("StopSequence"))
+            bus_stop_code = clean_value(route.get("BusStopCode"))
+            distance = clean_number(route.get("Distance"))
+
+            # Check required values and identify missing fields
+            required_fields = {
+                "ServiceNo": service_no,
+                "Direction": direction_value,
+                "StopSequence": sequence_value,
+                "BusStopCode": bus_stop_code,
+                "Distance": distance
+            }
+
+            missing_fields = [
+                field for field, value in required_fields.items()
+                if value is None
+            ]
+
+            if missing_fields:
+                print(
+                    "Skipping BusRoute:",
+                    service_no,
+                    "- missing fields:",
+                    ", ".join(missing_fields)
+                )
+                routes_skipped += 1
+                continue
+
+            direction = int(direction_value)
+            stop_seq = int(sequence_value)
 
             service_key = (service_no, direction)
 
@@ -190,18 +393,7 @@ try:
                     "Skipping BusRoute:",
                     service_key,
                     "Stop:", bus_stop_code,
-                    "- missing reference"
-                )
-                routes_skipped += 1
-                continue
-
-            # Distance is NOT NULL in BusRoute
-            if distance is None:
-                print(
-                    "Skipping BusRoute:",
-                    service_key,
-                    "Sequence:", stop_seq,
-                    "- missing distance"
+                    "- missing service or bus stop reference"
                 )
                 routes_skipped += 1
                 continue
@@ -222,7 +414,7 @@ try:
 
             routes_processed += 1
 
-        except (ValueError, mysql.connector.Error) as error:
+        except ValueError as error:
             print(
                 "Skipping BusRoute:",
                 route.get("ServiceNo"),
@@ -231,19 +423,38 @@ try:
             )
             routes_skipped += 1
 
-    print("\nBusRoute records processed:", routes_processed)
-    print("BusRoute records skipped:", routes_skipped)
+        except mysql.connector.Error as error:
+            print(
+                "BusRoute import failed:",
+                route.get("ServiceNo"),
+                route.get("StopSequence"),
+                error
+            )
+            raise
+
+    print("Records inserted or updated:", routes_processed)
+    print("Records skipped:", routes_skipped)
 
     # Save changes
     connection.commit()
-    print("\nImport completed successfully!")
 
-    # Verify database record counts
+    print("\n=== Import Completed ===")
+    print(
+        "Total records processed:",
+        stops_processed + services_processed + routes_processed
+    )
+    print(
+        "Total records skipped:",
+        stops_skipped + services_skipped + routes_skipped
+    )
+
+    # Verify database counts
+    print("\n=== Current MySQL Database Totals ===")
+
     for table in ("BusStop", "BusService", "BusRoute"):
         cursor.execute(f"SELECT COUNT(*) FROM {table}")
         total = cursor.fetchone()[0]
-        print(f"{table} total database records: {total}")
-
+        print(f"{table}: {total} total rows")
 
 except mysql.connector.Error as error:
     if connection is not None:
@@ -251,9 +462,7 @@ except mysql.connector.Error as error:
 
     print("\nMySQL error:", error)
 
-
 finally:
-    # Close database connection
     if cursor is not None:
         cursor.close()
 
