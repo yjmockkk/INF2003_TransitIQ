@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template
 
 import db
 from routes.train import bp as train_bp
+from routes.train_analytics import bp as train_analytics_bp
 from routes.bus import bp as bus_bp
 from routes.crowd import bp as crowd_bp
 from routes.bus_arrival import bp as bus_arrival_bp
@@ -18,7 +19,7 @@ app.register_blueprint(train_bp)
 app.register_blueprint(bus_bp)
 app.register_blueprint(crowd_bp)
 app.register_blueprint(bus_arrival_bp)
-
+app.register_blueprint(train_analytics_bp)
 
 @app.get("/api/health")
 def health():
