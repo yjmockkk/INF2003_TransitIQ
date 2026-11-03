@@ -5,7 +5,7 @@ Two Python scripts are used to populate the `Transitiq` MySQL database with bus 
 | Script | Tables populated | Dataset files |
 |---|---|---|
 | `bus_import.py` | `BusStop`, `BusService`, `BusRoute` | LTA DataMall API (Bus Stops, Bus Services and Bus Routes) |
-| `import_train_data.py` | `TrainLine`, `TrainStation`, `StationLine` | `datasets/train/csv/` (converted from original Excel datasets)|
+| `train_import.py` | `TrainLine`, `TrainStation`, `StationLine` | `datasets/train/csv/` (converted from original Excel datasets) |
 
 ## Data Sources
 ### Bus datasets
@@ -58,7 +58,7 @@ The import scripts do not create tables. They must exist before either script ru
 
        SHOW TABLES;
 
-   The database should contain these six relational tables:
+    The database should contain these seven tables:
 
    - BusStop
    - BusService
@@ -66,6 +66,11 @@ The import scripts do not create tables. They must exist before either script ru
    - TrainLine
    - TrainStation
    - StationLine
+   - StationConnection
+
+    `StationConnection` is created empty by `train_schema.sql`. It stores a copy of the
+   station-to-station connections in the view `v_name_graph`, so route lookups are fast.
+   It is filled in Step 7, after the train data has been imported.
 
 ### Step 3: Verify the Train Dataset Files
 
@@ -124,7 +129,7 @@ The import scripts use the following local database settings:
 Update the `host`, `port` or `user` if your MySQL setup differs. 
 The password is requested when a script runs, so it is never stored in the file.
 
-### Step 5: Run the scripts
+### Step 6: Run the scripts
 From the TransitIQ project root directory, run:
 
 ### Import bus datasets
@@ -190,7 +195,36 @@ The expected processing counts from the existing train import implementation are
 
 These counts should be verified against the actual output when running the script.
 
-### Step 6: Verify the import
+### Step 7: Create the Train Views and Fill StationConnection
+
+Do this after the train import in Step 6, because the views read the imported train tables.
+
+1. Execute `database/sql/train_view.sql` in MySQL Workbench/DBeaver. This creates the train
+   views (including `v_name_graph`, which defines the station-to-station connections), then
+   empties `StationConnection` and refills it from `v_name_graph`.
+2. Check that the table was filled and matches the view:
+
+       USE Transitiq;
+
+       SELECT COUNT(*) FROM v_name_graph;
+       SELECT COUNT(*) FROM StationConnection;
+
+   Both counts should be the same and greater than zero. If both are 0, the train import
+   (Step 6) has not run yet. Run it, then run `train_view.sql` again.
+
+#### When the train data changes
+
+`StationConnection` is a stored copy, so it is not updated automatically. If the station data
+changes (stations added, edited or deleted, or the train import is re-run with different
+data), re-run `train_view.sql` to refresh it. The file can be run any number of times.
+
+Changes that do not affect station names, codes or lines (for example, renaming a line) do
+not require a refresh.
+
+The train route queries in the API read from `StationConnection`. If it is empty, route
+requests return no results.
+
+### Step 8: Verify the import
 After running both import scripts, execute the following SQL queries in MySQL Workbench/DBeaver:
 
     USE Transitiq;
@@ -204,10 +238,15 @@ After running both import scripts, execute the following SQL queries in MySQL Wo
     SELECT COUNT(*) AS total_train_lines FROM TrainLine;
     SELECT COUNT(*) AS total_train_stations FROM TrainStation;
     SELECT COUNT(*) AS total_station_lines FROM StationLine;
+    
+    -- Train route tables
+    SELECT COUNT(*) AS total_station_connections FROM StationConnection;
 
 The bus table counts should reflect the successfully imported LTA records after the fresh import.
 
 Counts may differ from the API source totals if records are skipped due to missing values, foreign-key constraints or duplicate primary keys.
+
+`StationConnection` should have the same number of rows as `v_name_graph`.
 
 The bus import can be rerun to refresh the relational bus data from LTA DataMall. The API key and internet connection must be available whenever the script retrieves new data.
 
@@ -227,3 +266,8 @@ The bus import can be rerun to refresh the relational bus data from LTA DataMall
 | Bus records skipped | Check the reported missing fields, invalid values or foreign-key references |
 | Different database row counts | Review skipped records, duplicate keys and the API source record counts |
 | Bus table clearing fails | Check whether other database tables reference the bus tables through foreign keys |
+| `Table ... StationConnection doesn't exist` | Run `train_schema.sql` (Step 2) before `train_view.sql` |
+| `View ... doesn't exist` | Run `train_view.sql` (Step 7) |
+| Route API returns no route, or `StationConnection` has 0 rows | Run the train import (Step 6), then re-run `train_view.sql` |
+| Route results look out of date after changing stations | Re-run `train_view.sql` to refresh `StationConnection` |
+| `Error Code: 1175` when running a refresh | Use `TRUNCATE TABLE StationConnection;` instead of `DELETE` (Workbench Safe Updates blocks `DELETE` without `WHERE`) |
