@@ -401,7 +401,7 @@ Refresh MongoDB Compass, open `TransitIQ`, and select each collection to view it
 
 ## 7. Run the app
 
-The Flask backend in `backend/` exposes the train data from the `Transitiq` MySQL database as JSON endpoints. The frontend calls these endpoints.
+The Flask backend in `backend/` exposes the bus and train data from the `Transitiq` MySQL database as JSON endpoints. The frontend calls these endpoints.
 
 Before starting, complete sections 3 to 5. The API only reads and writes tables that already exist and contain data.
 
@@ -439,6 +439,50 @@ Open `http://localhost:5000/` for the API tester page. It has a button for each 
 4. **GET line stations** with code `NSL`: stations in numeric order (NS1, NS2, ... NS10).
 5. **POST create**, **PUT update**, then **DELETE** using the default `TEST1` values. Delete your test station afterwards so it does not stay in the database.
 
+### 7.4 Test the bus endpoints
+
+Select **Bus** on the API tester page. The bus controls are organised into:
+
+- **Browse Bus Data:** list services, search stops, and retrieve the ordered stops for a service and direction.
+- **Manage Bus Records:** create, read, update and delete records in `BusStop`, `BusService` and `BusRoute`.
+- **Bus Analysis:** find direct connections, identify well-connected stops, and compare operators.
+
+The page is a temporary API tester for demonstrating the backend and handing over request/response examples to the frontend developer.
+
+#### Primary keys and updates
+
+| Table | Primary key | Example |
+|---|---|---|
+| `BusStop` | `bus_stop_code` | `TEST01` |
+| `BusService` | `service_no` + `direction` | `SER39B`, `1` |
+| `BusRoute` | `service_no` + `direction` + `stop_seq` | `SER39B`, `1`, `1` |
+
+To update a record, enter its **existing primary key** and change its other fields. Keep all primary-key fields unchanged. For the two composite keys, every key component is needed to identify one record. `PUT` supports partial updates: omitted fields remain unchanged. Blank inputs in the tester are omitted; they do not clear the stored value.
+
+A `404` response means no record matches the key in the request URL. Check the key using **Read** or **View created records**, then retry. Changing the key in the inputs makes Update target a different record; it does not rename the original key.
+
+#### Suggested CRUD demonstration
+
+Use new keys that do not already exist in your database. Placeholder text is an example only and is not submitted unless you enter it.
+
+1. Create two bus stops, `TEST01` and `TEST02`, with road names, descriptions and valid coordinates.
+2. Read `TEST01`, change its description, click **Update**, then **Read** again to confirm the saved value.
+3. Create service `SER39B`, direction `1`, using `TEST01` as its origin and `TEST02` as its destination.
+4. Read that service, change its category or frequency, update it, then read it again.
+5. Create a route entry for `SER39B`, direction `1`, sequence `1`, referencing `TEST01` and distance `0`.
+6. Read the route entry, change its distance or a bus time, update it, then read it again.
+7. Delete the route entry, then the service, then the two test stops.
+
+Create stops before referencing them in a service or route, and create the service/direction before its route entries. Delete dependent records first, because foreign keys prevent deleting records that are still referenced.
+
+#### Created records versus all records
+
+**View created records** uses browser `localStorage` to remember the primary keys of successful creations made through the tester. It fetches their current database values, so successful updates are visible. Successfully deleted records are removed from the list, and records that return `404` are removed when the list is refreshed.
+
+This is browser-local tracking, not user ownership stored in MySQL. Records created before tracking was installed, through another browser, or through another API client are not automatically included. Clearing browser storage removes the tracking list but does not delete database records. Changing the hostname or port creates a separate browser-storage scope; use the same address when demonstrating this feature.
+
+**View all stops**, **View all services**, and **View all routes** use the normal list endpoints and include imported data together with manually created records. Stop and route lists return up to 50 records by default, with a maximum requested limit of 500; these controls do not display the entire database at once. The services list currently has no pagination.
+
 ### Project files
 
 | File | Purpose |
@@ -447,6 +491,8 @@ Open `http://localhost:5000/` for the API tester page. It has a button for each 
 | `backend/config.py` | Reads the database settings from `.env` |
 | `backend/db.py` | MySQL connection pool, `query()` for reads, `transaction()` for writes |
 | `backend/routes/train.py` | Train endpoints (read and CRUD) |
+| `backend/routes/bus.py` | Bus browsing and CRUD endpoints for the three bus tables |
+| `backend/routes/bus_analysis.py` | Direct connections, stop connectivity and operator comparison |
 | `backend/routes/train_analytics.py` | Train analytics and route endpoints |
 | `backend/.env.example` | Template for your own `.env` |
 | `frontend/templates/api_tester.html` | Test page with a button for each endpoint |
@@ -499,9 +545,171 @@ These use the views created in section 5.5, so run `train_view.sql` first.
 
 The shortest-route endpoint reads from `StationConnection`, so fill that table first (section 5.5).
 
+### Bus browsing and CRUD endpoints
+
+All paths below use the `/api/bus` prefix. Primary-key values in the path identify the record; they are not editable fields in an update body.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/bus/stops?q=&limit=50` | Search stops by code, road name or description; blank search lists stops |
+| GET | `/api/bus/stops/<bus_stop_code>` | Read one stop |
+| POST | `/api/bus/stops` | Create a stop |
+| PUT | `/api/bus/stops/<bus_stop_code>` | Update non-key fields of an existing stop |
+| DELETE | `/api/bus/stops/<bus_stop_code>` | Delete a stop if no records reference it |
+| GET | `/api/bus/services` | List services |
+| GET | `/api/bus/services/<service_no>/<direction>` | Read one service and direction |
+| POST | `/api/bus/services` | Create a service and direction |
+| PUT | `/api/bus/services/<service_no>/<direction>` | Update non-key fields of an existing service/direction |
+| DELETE | `/api/bus/services/<service_no>/<direction>` | Delete a service/direction if no route entries reference it |
+| GET | `/api/bus/services/<service_no>/route?direction=1` | Retrieve the ordered stops along a service/direction |
+| GET | `/api/bus/routes?limit=50` | List route entries |
+| GET | `/api/bus/routes/<service_no>/<direction>/<stop_seq>` | Read one route entry |
+| POST | `/api/bus/routes` | Create a route entry |
+| PUT | `/api/bus/routes/<service_no>/<direction>/<stop_seq>` | Update non-key fields of an existing route entry |
+| DELETE | `/api/bus/routes/<service_no>/<direction>/<stop_seq>` | Delete a route entry |
+
+#### Create request bodies
+
+Send JSON with `Content-Type: application/json`. Stop codes and bus times should be strings to preserve leading zeros. `TEST` and `SER` are example prefixes, not required naming rules.
+
+**BusStop:** all five fields are required.
+
+```json
+{
+  "bus_stop_code": "TEST01",
+  "road_name": "Victoria St",
+  "description": "Test bus stop",
+  "latitude": 1.300757,
+  "longitude": 103.856110
+}
+```
+
+**BusService:** service number, direction, operator, category, origin and destination are required. The four frequency fields are optional. Create both referenced stops first.
+
+```json
+{
+  "service_no": "SER39B",
+  "direction": 1,
+  "operator": "SMRT",
+  "category": "TRUNK",
+  "origin_code": "TEST01",
+  "destination_code": "TEST02",
+  "am_peak_freq": "07-08",
+  "am_offpeak_freq": "09-19",
+  "pm_peak_freq": "10-15",
+  "pm_offpeak_freq": "09-19"
+}
+```
+
+**BusRoute:** service number, direction, sequence, stop code and distance are required. The six time fields are optional. The referenced service/direction and bus stop must exist first.
+
+```json
+{
+  "service_no": "SER39B",
+  "direction": 1,
+  "stop_seq": 1,
+  "bus_stop_code": "TEST01",
+  "distance": 0,
+  "wd_first_bus": "0510",
+  "wd_last_bus": "2309",
+  "sat_first_bus": "0509",
+  "sat_last_bus": "2309",
+  "sun_first_bus": "0509",
+  "sun_last_bus": "2309"
+}
+```
+
+#### Update request bodies
+
+Send only the non-key fields to change. For example:
+
+`PUT /api/bus/stops/TEST01`
+
+```json
+{
+  "description": "Updated test bus stop"
+}
+```
+
+`PUT /api/bus/services/SER39B/1`
+
+```json
+{
+  "category": "TRUNK",
+  "am_peak_freq": "08-10"
+}
+```
+
+`PUT /api/bus/routes/SER39B/1/1`
+
+```json
+{
+  "distance": 0.5,
+  "wd_first_bus": "0530"
+}
+```
+
+A successful update returns `200`, including when the supplied values are unchanged. Read the same URL with `GET` to verify the current database values. The tester automatically performs this read after Create and Update and fills the inputs with the returned values.
+
+API clients may send JSON `null` to clear an optional frequency or time column. The tester's blank inputs do not send `null`; omitted fields retain their current values on update.
+
+#### Bus validation and database constraints
+
+| Rule | Enforced by |
+|---|---|
+| Unique stop code; unique service/direction; unique service/direction/sequence | MySQL primary keys |
+| Required columns cannot contain SQL `NULL` | MySQL `NOT NULL` constraints |
+| Service origin/destination and route stop must reference existing stops | MySQL foreign keys |
+| Route service/direction must reference an existing service/direction | MySQL composite foreign key |
+| Required create fields and non-empty update bodies | Flask validation |
+| Direction is `1` or `2`; stop sequence is a positive integer | Flask validation |
+| Latitude is between -90 and 90; longitude between -180 and 180 | Flask validation |
+| Coordinates and distance are finite; distance is nonnegative | Flask validation |
+| Bus times contain four digits with minutes from `00` to `59` | Flask validation |
+| Update field names come from an allowlist; values use SQL parameters | Flask query construction |
+
+Times use `HHMM`, such as `0530`. After-midnight hours such as `2530` are accepted. Database column lengths and other schema constraints still apply. `db.query()` handles reads, while `db.transaction()` commits successful writes and rolls back writes that raise an exception.
+
+### Bus analysis endpoints
+
+These endpoints query the bus tables directly; no additional SQL views are required for these three Flask queries.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/bus/analysis/direct-connections?origin_code=01012&destination_code=01023` | Find services that visit the origin before the destination in the same direction |
+| GET | `/api/bus/analysis/stop-connectivity` | List stops served by at least five distinct service numbers |
+| GET | `/api/bus/analysis/operator-comparison` | Compare operators by service count, service/direction count, average route distance and longest route distance |
+
+The direct-connections query uses a self-join on `BusRoute` and compares stop sequences. Stop connectivity uses joins, grouping, `COUNT(DISTINCT ...)` and `HAVING`. Operator comparison uses a derived table to obtain the maximum cumulative distance for each service/direction, then aggregates those route distances by operator. Its `total_routes` counts service/direction groups, not individual route-stop entries.
+
+Origin and destination are required and must differ for the direct-connections endpoint. No matching connection returns an empty `data` array.
+
+#### Bus response examples
+
+A single-record read returns an array containing one record:
+
+```json
+{
+  "data": [
+    {
+      "bus_stop_code": "TEST01",
+      "road_name": "Victoria St",
+      "description": "Updated test bus stop",
+      "latitude": "1.300757",
+      "longitude": "103.856110"
+    }
+  ],
+  "count": 1
+}
+```
+
+Decimal database values may be serialised as strings. Successful writes return a `message` object rather than a `data` array; creation returns `201`, while updates and deletes return `200`. Bus analysis responses currently contain `data` without a `count` field.
+
+Invalid input returns `400`. A missing record returns `404`. The detailed bus database error handler maps duplicate keys and foreign-key conflicts to `409`, selected column/type constraint errors to `400`, and other database errors to `500`. If using the simplified handler that returns only `"Database query failed"`, database errors instead return `500`; retain the detailed handler to expose the specific status codes.
+
 ### Response format
 
-Successful responses use this shape:
+Successful list/read responses generally use this shape (bus writes and analysis exceptions are described above):
 
 ```
 {"data": [...], "count": 11}
@@ -563,3 +771,17 @@ Errors use this shape:
 | `/api/health` fails | Check every value in `.env` and that `DB_NAME` is `Transitiq` |
 | Test page at `/` is blank | Check that `frontend/templates/api_tester.html` exists |
 | Port 5000 already in use | Stop the other program, or change `port=5000` in `app.py` |
+
+### Bus CRUD troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Update returns `404` / `Record not found` | Keep the existing primary key unchanged. For services, include the correct direction; for routes, include the correct direction and stop sequence. Read the same URL first. |
+| Update returns `400` | Supply at least one editable non-key field, check the validation message, and use the required value formats. |
+| Duplicate-key error when creating | Choose a new primary key, or use Update for the existing record. |
+| Foreign-key error when creating/updating | Create referenced stops first, then the service/direction, then route entries. |
+| Delete blocked by foreign keys | Remove or update dependent records before deleting their parent stop or service. |
+| `AttributeError: module 'db' has no attribute 'get_connection'` | Use the project's existing `with db.transaction() as cursor:` helper for writes. |
+| View created records is empty although database rows exist | The list only tracks creations made through the tester in this browser and at this hostname/port. Use the normal list endpoints to inspect other records. |
+| Test records disappear after running the bus importer | The importer clears and repopulates all three bus tables. Create fresh test records after importing. |
+| A successful write is followed by a read error | The write may already be committed. Read the record before retrying Create to avoid a duplicate-key error. |
