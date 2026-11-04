@@ -73,16 +73,10 @@
     <h2>TransitIQ API Tester</h2>
 
     <div class="tabs">
-      <button
-        id="train-tab"
-        class="active"
-        onclick="showTab('train')"
-      >
+      <button id="train-tab" class="active" onclick="showTab('train')">
         Train
       </button>
-      <button id="bus-tab" onclick="showTab('bus')">
-        Bus
-      </button>
+      <button id="bus-tab" onclick="showTab('bus')">Bus</button>
     </div>
 
     <div class="row">
@@ -90,9 +84,7 @@
     </div>
 
     <div>
-      <button
-        type="button"
-        onclick="window.location.href='/crowd-dashboard'">
+      <button type="button" onclick="window.location.href = '/crowd-dashboard'">
         Station Crowd
       </button>
     </div>
@@ -106,8 +98,8 @@
       </div>
 
       <div class="row">
-        Search <input id="q" placeholder="e.g. bishan or 碧山" />
-        Line <input id="line" placeholder="e.g. NSL" size="6" />
+        Search <input id="q" placeholder="e.g. bishan or 碧山" /> Line
+        <input id="line" placeholder="e.g. NSL" size="6" />
         <button onclick="searchStations()">GET stations</button>
       </div>
 
@@ -118,9 +110,7 @@
         </button>
 
         Line code <input id="lcode" value="NSL" size="8" />
-        <button
-          onclick="call('/api/train/lines/' + v('lcode') + '/stations')"
-        >
+        <button onclick="call('/api/train/lines/' + v('lcode') + '/stations')">
           GET line stations
         </button>
       </div>
@@ -128,10 +118,10 @@
       <h3>Create / update / delete a station</h3>
 
       <div class="row">
-        Code <input id="c_code" value="TEST1" size="8" />
-        English <input id="c_en" value="Test Station" />
-        Chinese <input id="c_zh" value="测试站" size="8" />
-        Line <input id="c_line" value="NSL" size="6" />
+        Code <input id="c_code" value="TEST1" size="8" /> English
+        <input id="c_en" value="Test Station" /> Chinese
+        <input id="c_zh" value="测试站" size="8" /> Line
+        <input id="c_line" value="NSL" size="6" />
       </div>
 
       <div class="row">
@@ -139,7 +129,9 @@
           POST create
         </button>
         <button
-          onclick="send('PUT', '/api/train/stations/' + v('c_code'), stationBody())"
+          onclick="
+            send('PUT', '/api/train/stations/' + v('c_code'), stationBody())
+          "
         >
           PUT update
         </button>
@@ -210,10 +202,7 @@
 
       <div class="row">
         Search
-        <input
-          id="bus_q"
-          placeholder="Stop code, road or stop name"
-        />
+        <input id="bus_q" placeholder="Stop code, road or stop name" />
         <button onclick="call('/api/bus/stops?q=' + v('bus_q'))">
 
         <button
@@ -545,7 +534,6 @@
       </div>
     </section>
 
-    <!-- SHARED RESULTS -->
     <div id="status" role="status"></div>
     <div id="table"></div>
     <pre id="out">Click a button to call the API.</pre>
@@ -560,7 +548,8 @@
 
         for (const name of ["train", "bus"]) {
           document.getElementById(name + "-panel").hidden = name !== tab;
-          document.getElementById(name + "-tab")
+          document
+            .getElementById(name + "-tab")
             .classList.toggle("active", name === tab);
         }
 
@@ -593,8 +582,10 @@
 
       function getBusRoute() {
         call(
-          "/api/bus/services/" + v("bus_service") +
-          "/route?direction=" + v("bus_direction")
+          "/api/bus/services/" +
+            v("bus_service") +
+            "/route?direction=" +
+            v("bus_direction"),
         );
       }
 
@@ -636,8 +627,11 @@
             return;
           }
 
-          document.getElementById("out").textContent =
-            JSON.stringify(json, null, 2);
+          document.getElementById("out").textContent = JSON.stringify(
+            json,
+            null,
+            2,
+          );
 
           showTable(json.data);
         } catch (err) {
