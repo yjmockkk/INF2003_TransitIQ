@@ -122,6 +122,55 @@
           DELETE
         </button>
       </div>
+      <!-- SHARED RESULTS -->
+      <h3>Analytics</h3>
+      <div class="row">
+        <button onclick="call('/api/train/analytics/line-sizes')">
+          Line sizes
+        </button>
+        <button onclick="call('/api/train/analytics/interchanges')">
+          Interchanges
+        </button>
+        <button onclick="call('/api/train/analytics/line-connections')">
+          Line connections
+        </button>
+      </div>
+      <div class="row">
+        Station <input id="n_code" value="NS17" size="8" />
+        <button
+          onclick="
+            call('/api/train/analytics/stations/' + v('n_code') + '/neighbours')
+          "
+        >
+          Neighbours
+        </button>
+        Route from <input id="r_from" value="NS1" size="8" /> to
+        <input id="r_to" value="NE17" size="8" />
+        <button
+          onclick="
+            call(
+              '/api/train/analytics/route?from=' +
+                v('r_from') +
+                '&to=' +
+                v('r_to'),
+            )
+          "
+        >
+          Fewest transfers
+        </button>
+        <button
+          onclick="
+            call(
+              '/api/train/analytics/shortest-route?from=' +
+                v('r_from') +
+                '&to=' +
+                v('r_to'),
+            )
+          "
+        >
+          Fewest stops
+        </button>
+      </div>
     </section>
 
     <!-- BUS CONTROLS -->
@@ -154,55 +203,6 @@
       </div>
     </section>
 
-    <!-- SHARED RESULTS -->
-    <h3>Analytics</h3>
-    <div class="row">
-      <button onclick="call('/api/train/analytics/line-sizes')">
-        Line sizes
-      </button>
-      <button onclick="call('/api/train/analytics/interchanges')">
-        Interchanges
-      </button>
-      <button onclick="call('/api/train/analytics/line-connections')">
-        Line connections
-      </button>
-    </div>
-    <div class="row">
-      Station <input id="n_code" value="NS17" size="8" />
-      <button
-        onclick="
-          call('/api/train/analytics/stations/' + v('n_code') + '/neighbours')
-        "
-      >
-        Neighbours
-      </button>
-      Route from <input id="r_from" value="NS1" size="8" /> to
-      <input id="r_to" value="NE17" size="8" />
-      <button
-        onclick="
-          call(
-            '/api/train/analytics/route?from=' +
-              v('r_from') +
-              '&to=' +
-              v('r_to'),
-          )
-        "
-      >
-        Fewest transfers
-      </button>
-      <button
-        onclick="
-          call(
-            '/api/train/analytics/shortest-route?from=' +
-              v('r_from') +
-              '&to=' +
-              v('r_to'),
-          )
-        "
-      >
-        Fewest stops
-      </button>
-    </div>
     <div id="status" role="status"></div>
     <div id="table"></div>
     <pre id="out">Click a button to call the API.</pre>
