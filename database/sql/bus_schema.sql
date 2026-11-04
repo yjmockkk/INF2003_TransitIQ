@@ -1,4 +1,3 @@
--- TransitIQ Bus Database Schema
 USE Transitiq;
 
 -- Create 'BusStop' table
