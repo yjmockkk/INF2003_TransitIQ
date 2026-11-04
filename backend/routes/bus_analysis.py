@@ -3,7 +3,6 @@ import db
 
 bus_analysis_bp = Blueprint("bus_analysis", __name__)
 
-
 # Query 1: Direct Bus Connections
 # Find bus services connecting two stops in the correct order.
 @bus_analysis_bp.get("/api/bus/analysis/direct-connections")
@@ -60,7 +59,6 @@ def stop_connectivity():
 
     results = db.query(sql)
     return jsonify({"data": results})
-
 
 # Query 3: Bus Operator Comparison
 # Compare operators based on services, routes and distances.

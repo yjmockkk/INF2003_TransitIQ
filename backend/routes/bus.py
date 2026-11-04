@@ -256,7 +256,6 @@ def create_stop():
         "bus_stop_code": data["bus_stop_code"],
     }), 201
 
-
 # Example: GET /api/bus/stops/TEST01
 @bp.get("/stops/<bus_stop_code>")
 def get_stop(bus_stop_code):
@@ -271,7 +270,6 @@ def get_stop(bus_stop_code):
         return jsonify({"error": "Bus stop not found"}), 404
 
     return jsonify({"data": [row], "count": 1})
-
 
 # Example: PUT /api/bus/stops/TEST01
 @bp.put("/stops/<bus_stop_code>")
@@ -303,7 +301,6 @@ def update_stop(bus_stop_code):
 
     return jsonify({"message": "Bus stop updated"})
 
-
 # Example: DELETE /api/bus/stops/TEST01
 @bp.delete("/stops/<bus_stop_code>")
 def delete_stop(bus_stop_code):
@@ -319,7 +316,6 @@ def delete_stop(bus_stop_code):
         return jsonify({"error": "Bus stop not found"}), 404
 
     return jsonify({"message": "Bus stop deleted"})
-
 
 # ----------------------------------------------
 # Bus Service CRUD Operations
@@ -363,7 +359,6 @@ def create_service():
         "direction": data["direction"],
     }), 201
 
-
 # Example: GET /api/bus/services/SER39B/1
 @bp.get("/services/<service_no>/<direction>")
 def get_service(service_no, direction):
@@ -382,7 +377,6 @@ def get_service(service_no, direction):
         return jsonify({"error": "Bus service not found"}), 404
 
     return jsonify({"data": [row], "count": 1})
-
 
 # Example: PUT /api/bus/services/SER39B/1
 @bp.put("/services/<service_no>/<direction>")
@@ -414,7 +408,6 @@ def update_service(service_no, direction):
         """, tuple(data.values()) + (service_no, direction))
 
     return jsonify({"message": "Bus service updated"})
-
 
 # Example: DELETE /api/bus/services/SER39B/1
 @bp.delete("/services/<service_no>/<direction>")
@@ -459,7 +452,6 @@ def list_routes():
 
     return jsonify({"data": rows, "count": len(rows)})
 
-
 # Example: POST /api/bus/routes
 @bp.post("/routes")
 def create_route():
@@ -500,7 +492,6 @@ def create_route():
         "stop_seq": data["stop_seq"],
     }), 201
 
-
 # Example: GET /api/bus/routes/SER39B/1/1
 @bp.get("/routes/<service_no>/<direction>/<stop_seq>")
 def get_route_entry(service_no, direction, stop_seq):
@@ -523,7 +514,6 @@ def get_route_entry(service_no, direction, stop_seq):
         return jsonify({"error": "Bus route entry not found"}), 404
 
     return jsonify({"data": [row], "count": 1})
-
 
 # Example: PUT /api/bus/routes/SER39B/1/1
 @bp.put("/routes/<service_no>/<direction>/<stop_seq>")
@@ -562,7 +552,6 @@ def update_route(service_no, direction, stop_seq):
         ))
 
     return jsonify({"message": "Bus route entry updated"})
-
 
 # Example: DELETE /api/bus/routes/SER39B/1/1
 @bp.delete("/routes/<service_no>/<direction>/<stop_seq>")
