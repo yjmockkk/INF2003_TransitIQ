@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,7 +11,7 @@
     <h1>Station Crowd Levels</h1>
 
     <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
-    <p>Data is collected approximately every 15 minutes.</p>
+    <p>Check the observation period to see when each crowd level applies.</p>
 
     <p>
         <label for="line">Train line:</label>
@@ -48,10 +48,9 @@
 
     <p id="message" role="status">Loading station information...</p>
     <p id="refresh-time"></p>
-
     <p id="summary"></p>
 
-    <div style="overflow-x: auto;">
+    <div style="overflow-x: auto">
         <table border="1" cellpadding="10" cellspacing="0">
             <thead>
                 <tr>
@@ -71,6 +70,49 @@
         “Not available” means the source has no crowd level available.
         It does not mean the station is uncrowded.
     </p>
+
+    <hr>
+
+    <section aria-labelledby="busy-hours-title">
+        <h2 id="busy-hours-title">Station Busy Hours</h2>
+
+        <p>
+            Find out how often high crowd levels were recorded at each
+            hour, from 6 AM to 11 PM, across the available history.
+        </p>
+
+        <form id="busy-hours-form">
+            <label for="busy-station">Station code:</label>
+            <input
+                id="busy-station"
+                type="text"
+                placeholder="Example: NS1"
+                maxlength="12"
+                pattern="[A-Za-z0-9]+"
+                required
+            >
+
+            <button id="busy-hours-button" type="submit">
+                Find busy hours
+            </button>
+        </form>
+
+        <p id="busy-hours-message" role="status"></p>
+        <p id="busy-hours-summary"></p>
+
+        <div style="overflow-x: auto">
+            <table border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th scope="col">Line</th>
+                        <th scope="col">Time (Singapore)</th>
+                        <th scope="col">How often was it crowded?</th>
+                    </tr>
+                </thead>
+                <tbody id="busy-hours-results"></tbody>
+            </table>
+        </div>
+    </section>
 
     <script>
         const lineNames = {
@@ -121,25 +163,36 @@
             });
         }
 
+        function appendCell(row, value) {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        }
+
         function displayRows() {
             const line = document.getElementById("line").value;
-            const station = document.getElementById("station")
-                .value.trim().toUpperCase();
+            const station = document
+                .getElementById("station")
+                .value.trim()
+                .toUpperCase();
             const crowd = document.getElementById("crowd").value;
 
-            const filtered = observations.filter(item =>
-                (!line || item.line_code === line) &&
-                (!station || item.station_code.toUpperCase().includes(station)) &&
-                (!crowd || item.crowd_level === crowd)
+            const filtered = observations.filter(
+                item =>
+                    (!line || item.line_code === line) &&
+                    (!station ||
+                        item.station_code.toUpperCase().includes(station)) &&
+                    (!crowd || item.crowd_level === crowd)
             );
 
-            filtered.sort((a, b) =>
-                a.line_code.localeCompare(b.line_code) ||
-                a.station_code.localeCompare(
-                    b.station_code,
-                    "en",
-                    { numeric: true }
-                )
+            filtered.sort(
+                (a, b) =>
+                    a.line_code.localeCompare(b.line_code) ||
+                    a.station_code.localeCompare(
+                        b.station_code,
+                        "en",
+                        { numeric: true }
+                    )
             );
 
             results.replaceChildren();
@@ -156,9 +209,7 @@
                 ];
 
                 for (const value of values) {
-                    const cell = document.createElement("td");
-                    cell.textContent = value;
-                    row.appendChild(cell);
+                    appendCell(row, value);
                 }
 
                 results.appendChild(row);
@@ -258,6 +309,121 @@
         setInterval(() => {
             if (!document.hidden) refreshData();
         }, 60000);
+
+        const busyForm = document.getElementById("busy-hours-form");
+        const busyButton = document.getElementById("busy-hours-button");
+        const busyMessage = document.getElementById("busy-hours-message");
+        const busySummary = document.getElementById("busy-hours-summary");
+        const busyResults = document.getElementById("busy-hours-results");
+
+        function busyHourLabel(hour) {
+            const period = hour >= 12 ? "PM" : "AM";
+            const displayHour = hour % 12 || 12;
+            return `${displayHour}:00 ${period}`;
+        }
+
+        busyForm.addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const station = document
+                .getElementById("busy-station")
+                .value.trim()
+                .toUpperCase();
+
+            busyButton.disabled = true;
+            busyMessage.textContent = "Loading busy-hour information...";
+            busySummary.textContent = "";
+            busyResults.replaceChildren();
+
+            try {
+                const params = new URLSearchParams({
+                    station_code: station
+                });
+
+                const response = await fetch(
+                    "/api/crowd/busy-hours?" + params.toString(),
+                    { cache: "no-store" }
+                );
+
+                const body = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        body.error || "Unable to load busy-hour information."
+                    );
+                }
+
+                if (!Array.isArray(body.data)) {
+                    throw new Error("Unexpected response received.");
+                }
+
+                // Keep the display within the chosen analysis hours.
+                const rows = body.data
+                    .filter(item => item.hour >= 6 && item.hour <= 23)
+                    .sort(
+                        (a, b) =>
+                            a.line_code.localeCompare(b.line_code) ||
+                            a.hour - b.hour
+                    );
+
+                if (rows.length === 0) {
+                    busyMessage.textContent =
+                        "No available crowd observations between 6 AM " +
+                        "and 11 PM were found for this station.";
+                    return;
+                }
+
+                for (const item of rows) {
+                    const row = document.createElement("tr");
+
+                    appendCell(row, item.line_code);
+                    appendCell(row, busyHourLabel(item.hour));
+                    appendCell(
+                        row,
+                        item.high_percentage < 10
+                            ? "Less than 10%"
+                            : item.high_percentage + "%"
+                    );
+
+                    busyResults.appendChild(row);
+                }
+
+                const maximum = Math.max(
+                    ...rows.map(item => item.high_percentage)
+                );
+
+                if (maximum === 0) {
+                    busySummary.textContent =
+                        "No high crowd levels were recorded for this " +
+                        "station during the displayed hours.";
+                } else {
+                    const busiest = rows
+                        .filter(item => item.high_percentage === maximum)
+                        .map(
+                            item =>
+                                item.line_code + " at " +
+                                busyHourLabel(item.hour)
+                        );
+
+                    busySummary.textContent =
+                        "Most frequently crowded: " +
+                        busiest.join(", ") +
+                        ". High crowd levels were reported in " +
+                        maximum + "% of observations at " +
+                        (busiest.length === 1 ? "this hour." : "these hours.");
+                }
+
+                busyMessage.textContent =
+                    "Historical results for " + station +
+                    ", showing 6 AM–11 PM Singapore time.";
+
+            } catch (error) {
+                busyMessage.textContent = error.message;
+
+            } finally {
+                busyButton.disabled = false;
+            }
+        });
 
         refreshData();
     </script>
