@@ -55,6 +55,7 @@
         <thead>
           <tr>
             <th scope="col">Station code</th>
+            <th scope="col">Station name</th>
             <th scope="col">Train line</th>
             <th scope="col">Crowd level</th>
             <th scope="col">Observation period</th>
@@ -82,7 +83,7 @@
         <input
           id="busy-search"
           type="search"
-          placeholder="e.g. Dhoby Ghaut, 多美歌, NS24"
+          placeholder="e.g. Bishan, 碧山, CC15"
           maxlength="100"
           autocomplete="off"
           required
@@ -105,6 +106,14 @@
       <div id="busy-tables"></div>
     </section>
 
-    <script src="{{ url_for('static', filename='js/crowd_dashboard.js') }}"></script>
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/crowd_latest.js') }}"
+    ></script>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/crowd_busy_hours.js') }}"
+    ></script>
   </body>
 </html>
