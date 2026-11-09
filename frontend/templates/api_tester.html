@@ -49,6 +49,23 @@
         border: 1px solid #aaa;
         padding: 4px 8px;
       }
+      #bus-panel fieldset {
+        margin: 18px 0;
+        padding: 14px;
+        border: 1px solid #aaa;
+      }
+      #bus-panel legend {
+        font-weight: bold;
+      }
+      #bus-panel .crud-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+      }
+      #bus-panel .crud-fields label {
+        display: grid;
+        gap: 5px;
+      }
     </style>
   </head>
 
@@ -56,16 +73,10 @@
     <h2>TransitIQ API Tester</h2>
 
     <div class="tabs">
-      <button
-        id="train-tab"
-        class="active"
-        onclick="showTab('train')"
-      >
+      <button id="train-tab" class="active" onclick="showTab('train')">
         Train
       </button>
-      <button id="bus-tab" onclick="showTab('bus')">
-        Bus
-      </button>
+      <button id="bus-tab" onclick="showTab('bus')">Bus</button>
     </div>
 
     <div class="row">
@@ -73,9 +84,7 @@
     </div>
 
     <div>
-      <button
-        type="button"
-        onclick="window.location.href='/crowd-dashboard'">
+      <button type="button" onclick="window.location.href = '/crowd-dashboard'">
         Station Crowd
       </button>
     </div>
@@ -89,8 +98,8 @@
       </div>
 
       <div class="row">
-        Search <input id="q" placeholder="e.g. bishan or 碧山" />
-        Line <input id="line" placeholder="e.g. NSL" size="6" />
+        Search <input id="q" placeholder="e.g. bishan or 碧山" /> Line
+        <input id="line" placeholder="e.g. NSL" size="6" />
         <button onclick="searchStations()">GET stations</button>
       </div>
 
@@ -101,9 +110,7 @@
         </button>
 
         Line code <input id="lcode" value="NSL" size="8" />
-        <button
-          onclick="call('/api/train/lines/' + v('lcode') + '/stations')"
-        >
+        <button onclick="call('/api/train/lines/' + v('lcode') + '/stations')">
           GET line stations
         </button>
       </div>
@@ -111,10 +118,10 @@
       <h3>Create / update / delete a station</h3>
 
       <div class="row">
-        Code <input id="c_code" value="TEST1" size="8" />
-        English <input id="c_en" value="Test Station" />
-        Chinese <input id="c_zh" value="测试站" size="8" />
-        Line <input id="c_line" value="NSL" size="6" />
+        Code <input id="c_code" value="TEST1" size="8" /> English
+        <input id="c_en" value="Test Station" /> Chinese
+        <input id="c_zh" value="测试站" size="8" /> Line
+        <input id="c_line" value="NSL" size="6" />
       </div>
 
       <div class="row">
@@ -122,7 +129,9 @@
           POST create
         </button>
         <button
-          onclick="send('PUT', '/api/train/stations/' + v('c_code'), stationBody())"
+          onclick="
+            send('PUT', '/api/train/stations/' + v('c_code'), stationBody())
+          "
         >
           PUT update
         </button>
@@ -130,32 +139,83 @@
           DELETE
         </button>
       </div>
+      <!-- SHARED RESULTS -->
+      <h3>Analytics</h3>
+      <div class="row">
+        <button onclick="call('/api/train/analytics/line-sizes')">
+          Line sizes
+        </button>
+        <button onclick="call('/api/train/analytics/interchanges')">
+          Interchanges
+        </button>
+        <button onclick="call('/api/train/analytics/line-connections')">
+          Line connections
+        </button>
+      </div>
+      <div class="row">
+        Station <input id="n_code" value="NS17" size="8" />
+        <button
+          onclick="
+            call('/api/train/analytics/stations/' + v('n_code') + '/neighbours')
+          "
+        >
+          Neighbours
+        </button>
+        Route from <input id="r_from" value="NS1" size="8" /> to
+        <input id="r_to" value="NE17" size="8" />
+        <button
+          onclick="
+            call(
+              '/api/train/analytics/route?from=' +
+                v('r_from') +
+                '&to=' +
+                v('r_to'),
+            )
+          "
+        >
+          Fewest transfers
+        </button>
+        <button
+          onclick="
+            call(
+              '/api/train/analytics/shortest-route?from=' +
+                v('r_from') +
+                '&to=' +
+                v('r_to'),
+            )
+          "
+        >
+          Fewest stops
+        </button>
+      </div>
     </section>
 
     <!-- BUS CONTROLS -->
     <section id="bus-panel" hidden>
-      <h3>Bus API</h3>
+      <h3>Browse Bus Data</h3>
 
       <div class="row">
-        <button onclick="call('/api/bus/services')">
+        <button type="button" onclick="call('/api/bus/services')">
           GET bus services
         </button>
       </div>
 
       <div class="row">
         Search
-        <input
-          id="bus_q"
-          placeholder="Stop code, road or stop name"
-        />
+        <input id="bus_q" placeholder="Stop code, road or stop name" />
         <button onclick="call('/api/bus/stops?q=' + v('bus_q'))">
+
+        <button
+          type="button"
+          onclick="call('/api/bus/stops?q=' + v('bus_q'))"
+        >
           GET bus stops
         </button>
       </div>
 
       <div class="row">
         Service number
-        <input id="bus_service" value="27" size="8" />
+        <input id="bus_service" placeholder="e.g. 27" size="8" />
 
         Direction
         <select id="bus_direction">
@@ -165,9 +225,315 @@
 
         <button onclick="getBusRoute()">GET bus route</button>
       </div>
+
+      <h3>Manage Bus Records</h3>
+
+      <p>To update a record, enter its existing primary key and change
+        the other fields. Keep all primary key fields unchanged.</p>
+
+      <!-- BUS STOP -->
+      <fieldset>
+        <legend>BusStop</legend>
+
+        <p><strong>Primary key:</strong> Stop code</p>
+
+        <div class="crud-fields">
+          <label for="stop_bus_stop_code">
+            Stop code
+            <input id="stop_bus_stop_code" placeholder="e.g. TEST01" />
+          </label>
+
+          <label for="stop_road_name">
+            Road name
+            <input id="stop_road_name" placeholder="e.g. Victoria St" />
+          </label>
+
+          <label for="stop_description">
+            Description
+            <input
+              id="stop_description"
+              placeholder="e.g. Bugis Stn Exit B"
+            />
+          </label>
+
+          <label for="stop_latitude">
+            Latitude
+            <input id="stop_latitude" placeholder="e.g. 1.300757" />
+          </label>
+
+          <label for="stop_longitude">
+            Longitude
+            <input id="stop_longitude" placeholder="e.g. 103.856110" />
+          </label>
+        </div>
+
+        <div class="row">
+          <button type="button" onclick="busCrud('stop', 'POST')">
+            Create
+          </button>
+
+          <button type="button" onclick="busCrud('stop', 'GET')">
+            Read
+          </button>
+
+          <button type="button" onclick="busCrud('stop', 'PUT')">
+            Update
+          </button>
+
+          <button type="button" onclick="busCrud('stop', 'DELETE')">
+            Delete
+          </button>
+
+          <button type="button" onclick="listCreated('stop')">
+            View created records
+          </button>
+
+          <button type="button" onclick="call('/api/bus/stops')">
+            View all stops
+          </button>
+        </div>
+      </fieldset>
+
+      <!-- BUS SERVICE -->
+      <fieldset>
+        <legend>BusService</legend>
+
+        <p><strong>Primary key:</strong> Service number + Direction</p>
+
+        <div class="crud-fields">
+          <label for="service_service_no">
+            Service number
+            <input id="service_service_no" placeholder="e.g. SER39B" />
+          </label>
+
+          <label for="service_direction">
+            Direction
+            <input id="service_direction" placeholder="1 or 2" />
+          </label>
+
+          <label for="service_operator">
+            Operator
+            <input id="service_operator" placeholder="e.g. SMRT" />
+          </label>
+
+          <label for="service_category">
+            Category
+            <input id="service_category" placeholder="e.g. TRUNK" />
+          </label>
+
+          <label for="service_origin_code">
+            Origin stop code
+            <input id="service_origin_code" placeholder="e.g. 22009" />
+          </label>
+
+          <label for="service_destination_code">
+            Destination stop code
+            <input
+              id="service_destination_code"
+              placeholder="e.g. 25009"
+            />
+          </label>
+
+          <label for="service_am_peak_freq">
+            AM peak frequency
+            <input
+              id="service_am_peak_freq"
+              placeholder="e.g. 07-08 (optional)"
+            />
+          </label>
+
+          <label for="service_am_offpeak_freq">
+            AM off-peak frequency
+            <input
+              id="service_am_offpeak_freq"
+              placeholder="e.g. 09-19 (optional)"
+            />
+          </label>
+
+          <label for="service_pm_peak_freq">
+            PM peak frequency
+            <input
+              id="service_pm_peak_freq"
+              placeholder="e.g. 10-15 (optional)"
+            />
+          </label>
+
+          <label for="service_pm_offpeak_freq">
+            PM off-peak frequency
+            <input
+              id="service_pm_offpeak_freq"
+              placeholder="e.g. 09-19 (optional)"
+            />
+          </label>
+        </div>
+
+        <div class="row">
+          <button type="button" onclick="busCrud('service', 'POST')">
+            Create
+          </button>
+
+          <button type="button" onclick="busCrud('service', 'GET')">
+            Read
+          </button>
+
+          <button type="button" onclick="busCrud('service', 'PUT')">
+            Update
+          </button>
+
+          <button type="button" onclick="busCrud('service', 'DELETE')">
+            Delete
+          </button>
+
+          <button type="button" onclick="listCreated('service')">
+            View created records
+          </button>
+
+          <button type="button" onclick="call('/api/bus/services')">
+            View all services
+          </button>
+        </div>
+      </fieldset>
+
+      <!-- BUS ROUTE -->
+      <fieldset>
+        <legend>BusRoute</legend>
+
+        <p><strong>Primary key:</strong> Service number + Direction + Stop sequence</p>
+
+        <div class="crud-fields">
+          <label for="route_service_no">
+            Service number
+            <input id="route_service_no" placeholder="e.g. SER39B" />
+          </label>
+
+          <label for="route_direction">
+            Direction
+            <input id="route_direction" placeholder="1 or 2" />
+          </label>
+
+          <label for="route_stop_seq">
+            Stop sequence
+            <input id="route_stop_seq" placeholder="e.g. 7" />
+          </label>
+
+          <label for="route_bus_stop_code">
+            Stop code
+            <input id="route_bus_stop_code" placeholder="e.g. 85089" />
+          </label>
+
+          <label for="route_distance">
+            Distance
+            <input id="route_distance" placeholder="e.g. 3.5" />
+          </label>
+
+          <label for="route_wd_first_bus">
+            Weekday first bus
+            <input
+              id="route_wd_first_bus"
+              placeholder="HHMM, e.g. 0510 (optional)"
+            />
+          </label>
+
+          <label for="route_wd_last_bus">
+            Weekday last bus
+            <input
+              id="route_wd_last_bus"
+              placeholder="HHMM, e.g. 2309 (optional)"
+            />
+          </label>
+
+          <label for="route_sat_first_bus">
+            Saturday first bus
+            <input
+              id="route_sat_first_bus"
+              placeholder="HHMM, e.g. 0509 (optional)"
+            />
+          </label>
+
+          <label for="route_sat_last_bus">
+            Saturday last bus
+            <input
+              id="route_sat_last_bus"
+              placeholder="HHMM, e.g. 2309 (optional)"
+            />
+          </label>
+
+          <label for="route_sun_first_bus">
+            Sunday first bus
+            <input
+              id="route_sun_first_bus"
+              placeholder="HHMM, e.g. 0509 (optional)"
+            />
+          </label>
+
+          <label for="route_sun_last_bus">
+            Sunday last bus
+            <input
+              id="route_sun_last_bus"
+              placeholder="HHMM, e.g. 2309 (optional)"
+            />
+          </label>
+        </div>
+
+        <div class="row">
+          <button type="button" onclick="busCrud('route', 'POST')">
+            Create
+          </button>
+
+          <button type="button" onclick="busCrud('route', 'GET')">
+            Read
+          </button>
+
+          <button type="button" onclick="busCrud('route', 'PUT')">
+            Update
+          </button>
+
+          <button type="button" onclick="busCrud('route', 'DELETE')">
+            Delete
+          </button>
+
+          <button type="button" onclick="listCreated('route')">
+            View created records
+          </button>
+
+          <button type="button" onclick="call('/api/bus/routes')">
+            View all routes
+          </button>
+        </div>
+      </fieldset>
+
+      <!-- BUS ANALYSIS -->
+      <h3>Bus Analysis</h3>
+
+      <div class="row">
+        Origin stop code
+        <input id="origin_code" placeholder="e.g. 01012" />
+
+        Destination stop code
+        <input id="destination_code" placeholder="e.g. 01023" />
+
+        <button type="button" onclick="getDirectConnections()">
+          GET direct connections
+        </button>
+      </div>
+
+      <div class="row">
+        <button
+          type="button"
+          onclick="call('/api/bus/analysis/stop-connectivity')"
+        >
+          GET stop connectivity
+        </button>
+
+        <button
+          type="button"
+          onclick="call('/api/bus/analysis/operator-comparison')"
+        >
+          GET operator comparison
+        </button>
+      </div>
     </section>
 
-    <!-- SHARED RESULTS -->
     <div id="status" role="status"></div>
     <div id="table"></div>
     <pre id="out">Click a button to call the API.</pre>
@@ -182,7 +548,8 @@
 
         for (const name of ["train", "bus"]) {
           document.getElementById(name + "-panel").hidden = name !== tab;
-          document.getElementById(name + "-tab")
+          document
+            .getElementById(name + "-tab")
             .classList.toggle("active", name === tab);
         }
 
@@ -215,8 +582,10 @@
 
       function getBusRoute() {
         call(
-          "/api/bus/services/" + v("bus_service") +
-          "/route?direction=" + v("bus_direction")
+          "/api/bus/services/" +
+            v("bus_service") +
+            "/route?direction=" +
+            v("bus_direction"),
         );
       }
 
@@ -258,8 +627,11 @@
             return;
           }
 
-          document.getElementById("out").textContent =
-            JSON.stringify(json, null, 2);
+          document.getElementById("out").textContent = JSON.stringify(
+            json,
+            null,
+            2,
+          );
 
           showTable(json.data);
         } catch (err) {
@@ -294,12 +666,357 @@
             tr.insertCell().textContent =
               value !== null && typeof value === "object"
                 ? JSON.stringify(value)
-                : value ?? "";
+                : (value ?? "");
           });
         });
 
         box.appendChild(table);
       }
+
+      // BEGIN added bus CRUD and analysis helpers
+      const busForms = {
+        stop: {
+          resource: "stops",
+          keys: ["bus_stop_code"],
+          fields: [
+            "bus_stop_code",
+            "road_name",
+            "description",
+            "latitude",
+            "longitude"
+          ]
+        },
+
+        service: {
+          resource: "services",
+          keys: ["service_no", "direction"],
+          fields: [
+            "service_no",
+            "direction",
+            "operator",
+            "category",
+            "origin_code",
+            "destination_code",
+            "am_peak_freq",
+            "am_offpeak_freq",
+            "pm_peak_freq",
+            "pm_offpeak_freq"
+          ]
+        },
+
+        route: {
+          resource: "routes",
+          keys: ["service_no", "direction", "stop_seq"],
+          fields: [
+            "service_no",
+            "direction",
+            "stop_seq",
+            "bus_stop_code",
+            "distance",
+            "wd_first_bus",
+            "wd_last_bus",
+            "sat_first_bus",
+            "sat_last_bus",
+            "sun_first_bus",
+            "sun_last_bus"
+          ]
+        }
+      };
+
+      const trackerKey = "transitiq.createdBusRecords.v1";
+
+      function loadCreated() {
+        const stored = JSON.parse(
+          localStorage.getItem(trackerKey) || "{}"
+        );
+
+        if (
+          !stored ||
+          typeof stored !== "object" ||
+          Array.isArray(stored)
+        ) {
+          throw new Error(
+            "The saved created-record list is invalid."
+          );
+        }
+
+        for (const kind of Object.keys(busForms)) {
+          if (!Array.isArray(stored[kind])) {
+            stored[kind] = [];
+          }
+        }
+
+        return stored;
+      }
+
+      function rememberCreated(kind, keys, remove = false) {
+        const stored = loadCreated();
+        const identity = JSON.stringify(keys);
+
+        stored[kind] = stored[kind].filter(
+          item => JSON.stringify(item) !== identity
+        );
+
+        if (!remove) {
+          stored[kind].push(keys);
+        }
+
+        localStorage.setItem(
+          trackerKey,
+          JSON.stringify(stored)
+        );
+      }
+
+      function itemUrl(kind, keys) {
+        return "/api/bus/" + busForms[kind].resource + "/" +
+          keys.map(value => encodeURIComponent(value)).join("/");
+      }
+
+      async function fetchJson(method, url, body) {
+        const options = {
+          method,
+          cache: "no-store",
+          headers: {}
+        };
+
+        if (body !== undefined) {
+          options.headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+        const text = await response.text();
+
+        let json;
+
+        try {
+          json = JSON.parse(text);
+        } catch {
+          throw new Error(
+            "HTTP " + response.status +
+            ": Expected JSON. Check that Flask is running " +
+            "and the API URL is correct."
+          );
+        }
+
+        if (!response.ok) {
+          const error = new Error(
+            "HTTP " + response.status + ": " +
+            (json.error || json.message || response.statusText)
+          );
+
+          error.status = response.status;
+          throw error;
+        }
+
+        return json;
+      }
+
+      function displayResult(version, message, json) {
+        if (version !== requestVersion) return;
+
+        document.getElementById("status").textContent = message;
+
+        document.getElementById("out").textContent =
+          JSON.stringify(json, null, 2);
+
+        showTable(json.data);
+      }
+
+      function fillBusForm(kind, record) {
+        for (const field of busForms[kind].fields) {
+          document.getElementById(kind + "_" + field).value =
+            record[field] ?? "";
+        }
+      }
+
+      async function busCrud(kind, method) {
+        const version = ++requestVersion;
+        const config = busForms[kind];
+
+        let saved = false;
+
+        document.getElementById("table").replaceChildren();
+        document.getElementById("out").textContent = "";
+
+        try {
+          const values = Object.fromEntries(
+            config.fields.map(field => [
+              field,
+              raw(kind + "_" + field)
+            ])
+          );
+
+          const missing = config.keys.filter(
+            key => !values[key]
+          );
+
+          if (missing.length) {
+            throw new Error(
+              "Enter the primary key: " + missing.join(", ")
+            );
+          }
+
+          const keys = config.keys.map(key => values[key]);
+          const url = itemUrl(kind, keys);
+
+          const body = Object.fromEntries(
+            Object.entries(values).filter(([key, value]) =>
+              value !== "" &&
+              (method === "POST" || !config.keys.includes(key))
+            )
+          );
+
+          if (
+            method === "PUT" &&
+            !Object.keys(body).length
+          ) {
+            throw new Error(
+              "Enter at least one non-key field to update."
+            );
+          }
+
+          // Check storage before creating or deleting a tracked record.
+          if (method === "POST" || method === "DELETE") {
+            const stored = loadCreated();
+
+            localStorage.setItem(
+              trackerKey,
+              JSON.stringify(stored)
+            );
+          }
+
+          document.getElementById("status").textContent =
+            "Loading...";
+
+          if (method === "POST" || method === "PUT") {
+            const writeUrl = method === "POST"
+              ? "/api/bus/" + config.resource
+              : url;
+
+            await fetchJson(method, writeUrl, body);
+            saved = true;
+
+            if (method === "POST") {
+              rememberCreated(kind, keys);
+            }
+
+            // Fetch the saved database record after the write.
+            const json = await fetchJson("GET", url);
+
+            if (
+              version === requestVersion &&
+              json.data?.[0]
+            ) {
+              fillBusForm(kind, json.data[0]);
+            }
+
+            displayResult(
+              version,
+              (method === "POST" ? "Created." : "Updated.") +
+                " Showing saved database values.",
+              json
+            );
+          } else if (method === "GET") {
+            const json = await fetchJson("GET", url);
+
+            if (
+              version === requestVersion &&
+              json.data?.[0]
+            ) {
+              fillBusForm(kind, json.data[0]);
+            }
+
+            displayResult(
+              version,
+              "Read complete. Showing saved database values.",
+              json
+            );
+          } else if (method === "DELETE") {
+            const json = await fetchJson("DELETE", url);
+            saved = true;
+
+            rememberCreated(kind, keys, true);
+
+            displayResult(
+              version,
+              "Deleted successfully.",
+              json
+            );
+          }
+        } catch (error) {
+          if (version !== requestVersion) return;
+
+          document.getElementById("status").textContent =
+            (
+              saved
+                ? "The database change succeeded, but the follow-up step failed: "
+                : "Operation failed: "
+            ) + error.message;
+        }
+      }
+
+      async function listCreated(kind) {
+        const version = ++requestVersion;
+
+        document.getElementById("status").textContent =
+          "Loading created records...";
+
+        document.getElementById("table").replaceChildren();
+        document.getElementById("out").textContent = "";
+
+        try {
+          const stored = loadCreated();
+          const rows = [];
+
+          for (const keys of stored[kind]) {
+            try {
+              // Read current values, not cached form values.
+              const json = await fetchJson(
+                "GET",
+                itemUrl(kind, keys)
+              );
+
+              rows.push(...(json.data || []));
+            } catch (error) {
+              if (error.status === 404) {
+                // Remove keys for records deleted elsewhere.
+                rememberCreated(kind, keys, true);
+              } else {
+                throw error;
+              }
+            }
+          }
+
+          displayResult(
+            version,
+            rows.length
+              ? "Showing " + rows.length +
+                " record(s) created through this browser."
+              : "No records created through this browser yet.",
+            {
+              data: rows,
+              count: rows.length
+            }
+          );
+        } catch (error) {
+          if (version !== requestVersion) return;
+
+          document.getElementById("status").textContent =
+            "Could not list created records: " + error.message;
+        }
+      }
+
+      function getDirectConnections() {
+        call(
+          "/api/bus/analysis/direct-connections?origin_code=" +
+          v("origin_code") +
+          "&destination_code=" +
+          v("destination_code")
+        );
+      }
+
+      // END added bus CRUD and analysis helpers
     </script>
   </body>
 </html>

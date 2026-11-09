@@ -2,8 +2,11 @@ from flask import Flask, jsonify, render_template
 
 import db
 from routes.train import bp as train_bp
+from routes.train_analytics import bp as train_analytics_bp
 from routes.bus import bp as bus_bp
 from routes.crowd import bp as crowd_bp
+from routes.bus_arrival import bp as bus_arrival_bp
+from routes.bus_analysis import bus_analysis_bp
 
 from crowd_alert_import_scheduler import start_collector
 
@@ -12,11 +15,15 @@ app = Flask(
     template_folder="../frontend/templates",
     static_folder="../frontend/static",
 )
-app.json.ensure_ascii = False   # show Chinese characters as-is in JSON
+app.json.ensure_ascii = False   # Show Chinese characters as-is in JSON
+app.json.sort_keys = False      # Preserve SQL result column order
+
 app.register_blueprint(train_bp)
 app.register_blueprint(bus_bp)
 app.register_blueprint(crowd_bp)
-
+app.register_blueprint(bus_arrival_bp)
+app.register_blueprint(bus_analysis_bp)
+app.register_blueprint(train_analytics_bp)
 
 @app.get("/api/health")
 def health():
