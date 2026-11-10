@@ -234,3 +234,71 @@ def busy_hours():
         return jsonify({
             "error": "Busy-hour data is temporarily unavailable."
         }), 503
+
+@bp.get("/alerts/latest")
+def latest_train_alert():
+    def as_list(value):
+        if value is None or value == "":
+            return []
+        return value if isinstance(value, list) else [value]
+
+    try:
+        document = database.TrainServiceAlert.find_one(
+            {},
+            sort=[("fetched_at", -1), ("_id", -1)],
+        )
+
+        if document is None:
+            response = jsonify({"data": None})
+        else:
+            payload = document.get("payload")
+
+            if not isinstance(payload, dict):
+                payload = {}
+
+            status = str(
+                payload.get("Status", document.get("status", ""))
+            )
+
+            labels = {
+                "1": "Normal train service or minor delays",
+                "2": "Disrupted train service or major delays",
+            }
+
+            last_checked = (
+                document.get("last_seen_at")
+                or document.get("fetched_at")
+            )
+
+            response = jsonify({
+                "data": {
+                    "status": status,
+                    "status_label": labels.get(
+                        status, "Service status unavailable"
+                    ),
+                    "affected_segments": as_list(
+                        payload.get("AffectedSegments")
+                    ),
+                    "messages": as_list(payload.get("Message")),
+                    "additional_details": {
+                        key: value
+                        for key, value in payload.items()
+                        if key not in (
+                            "Status", "AffectedSegments", "Message"
+                        )
+                    },
+                    "last_checked": (
+                        last_checked.isoformat()
+                        if isinstance(last_checked, datetime)
+                        else None
+                    ),
+                }
+            })
+
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    except PyMongoError:
+        return jsonify({
+            "error": "Train-service information is temporarily unavailable."
+        }), 503
