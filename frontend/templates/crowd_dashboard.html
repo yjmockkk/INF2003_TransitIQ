@@ -1,119 +1,165 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Station Crowd Levels</title>
-  </head>
+    <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/crowd_dashboard.css') }}"
+    >
+</head>
 
-  <body>
+<body>
     <a href="/">Back to API Tester</a>
+
+    <section aria-labelledby="train-alert-title">
+        <h2 id="train-alert-title">
+            Service Status &amp; Travel Advisories
+        </h2>
+
+        <h3>Train service status</h3>
+
+        <p
+            id="train-alert-status"
+            class="train-status train-status--unknown"
+            role="status"
+        >
+            Loading train-service information...
+        </p>
+
+        <p id="train-alert-error" role="status"></p>
+
+        <div id="train-alert-details"></div>
+
+        <p id="train-alert-checked"></p>
+
+        <button id="train-alert-refresh" type="button">
+            Refresh service status
+        </button>
+    </section>
+
+    <hr>
+
     <h1>Station Crowd Levels</h1>
 
     <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
     <p>Check the observation period to see when each crowd level applies.</p>
 
     <p>
-      <label for="line">Train line:</label>
-      <select id="line">
-        <option value="">All lines</option>
-        <option value="CCL">Circle Line</option>
-        <option value="CEL">Circle Line Extension</option>
-        <option value="CGL">Changi Extension</option>
-        <option value="DTL">Downtown Line</option>
-        <option value="EWL">East West Line</option>
-        <option value="NEL">North East Line</option>
-        <option value="NSL">North South Line</option>
-        <option value="BPL">Bukit Panjang LRT</option>
-        <option value="SLRT">Sengkang LRT</option>
-        <option value="PLRT">Punggol LRT</option>
-        <option value="TEL">Thomson-East Coast Line</option>
-      </select>
+        <label for="line">Train line:</label>
+        <select id="line">
+            <option value="">All lines</option>
+            <option value="CCL">Circle Line</option>
+            <option value="CEL">Circle Line Extension</option>
+            <option value="CGL">Changi Extension</option>
+            <option value="DTL">Downtown Line</option>
+            <option value="EWL">East West Line</option>
+            <option value="NEL">North East Line</option>
+            <option value="NSL">North South Line</option>
+            <option value="BPL">Bukit Panjang LRT</option>
+            <option value="SLRT">Sengkang LRT</option>
+            <option value="PLRT">Punggol LRT</option>
+            <option value="TEL">Thomson-East Coast Line</option>
+        </select>
 
-      <label for="station">Station code:</label>
-      <input id="station" type="search" placeholder="e.g. NS17" />
+        <label for="station">Station code:</label>
+        <input
+            id="station"
+            type="search"
+            placeholder="e.g. NS17"
+        >
 
-      <label for="crowd">Crowd level:</label>
-      <select id="crowd">
-        <option value="">All levels</option>
-        <option value="l">Low</option>
-        <option value="m">Moderate</option>
-        <option value="h">High</option>
-        <option value="NA">Not available</option>
-      </select>
+        <label for="crowd">Crowd level:</label>
+        <select id="crowd">
+            <option value="">All levels</option>
+            <option value="l">Low</option>
+            <option value="m">Moderate</option>
+            <option value="h">High</option>
+            <option value="NA">Not available</option>
+        </select>
 
-      <button id="reset" type="button">Clear filters</button>
-      <button id="refresh" type="button">Refresh</button>
+        <button id="reset" type="button">Clear filters</button>
+        <button id="refresh" type="button">Refresh</button>
     </p>
 
     <p id="message" role="status">Loading station information...</p>
     <p id="refresh-time"></p>
     <p id="summary"></p>
 
-    <div style="overflow-x: auto">
-      <table border="1" cellpadding="10" cellspacing="0">
-        <thead>
-          <tr>
-            <th scope="col">Station code</th>
-            <th scope="col">Station name</th>
-            <th scope="col">Train line</th>
-            <th scope="col">Crowd level</th>
-            <th scope="col">Observation period</th>
-            <th scope="col">Last collected</th>
-          </tr>
-        </thead>
-        <tbody id="results"></tbody>
-      </table>
+    <div class="table-container">
+        <table border="1" cellpadding="10" cellspacing="0">
+            <thead>
+                <tr>
+                    <th scope="col">Station code</th>
+                    <th scope="col">Station name</th>
+                    <th scope="col">Train line</th>
+                    <th scope="col">Crowd level</th>
+                    <th scope="col">Observation period</th>
+                    <th scope="col">Last collected</th>
+                </tr>
+            </thead>
+
+            <tbody id="results"></tbody>
+        </table>
     </div>
 
     <p>All times are shown in Singapore time.</p>
+
     <p>
-      “Not available” means the source has no crowd level available. It does not
-      mean the station is uncrowded.
+        “Not available” means the source has no crowd level available.
+        It does not mean the station is uncrowded.
     </p>
 
-    <hr />
+    <hr>
 
     <section aria-labelledby="busy-hours-title">
-      <h2 id="busy-hours-title">Station Busy Hours</h2>
+        <h2 id="busy-hours-title">Station Busy Hours</h2>
 
-      <form id="busy-hours-form">
-        <label for="busy-search">Station name or code:</label>
+        <form id="busy-hours-form">
+            <label for="busy-search">Station name or code:</label>
 
-        <input
-          id="busy-search"
-          type="search"
-          placeholder="e.g. Bishan, 碧山, CC15"
-          maxlength="100"
-          autocomplete="off"
-          required
-        />
+            <input
+                id="busy-search"
+                type="search"
+                placeholder="e.g. Bishan, 碧山, CC15"
+                maxlength="100"
+                autocomplete="off"
+                required
+            >
 
-        <button id="busy-search-button" type="submit">Search</button>
-      </form>
+            <button id="busy-search-button" type="submit">
+                Search
+            </button>
+        </form>
 
-      <div id="station-choice-container" hidden>
-        <label for="station-choice">Choose a station:</label>
+        <div id="station-choice-container" hidden>
+            <label for="station-choice">Choose a station:</label>
 
-        <select id="station-choice">
-          <option value="">Select a station</option>
-        </select>
-      </div>
+            <select id="station-choice">
+                <option value="">Select a station</option>
+            </select>
+        </div>
 
-      <p id="busy-message" role="status"></p>
-      <p>Results are based on recorded observations.</p>
+        <p id="busy-message" role="status"></p>
+        <p>Results are based on recorded observations.</p>
 
-      <div id="busy-tables"></div>
+        <div id="busy-tables"></div>
     </section>
 
     <script
-      type="module"
-      src="{{ url_for('static', filename='js/crowd_latest.js') }}"
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_latest.js') }}"
     ></script>
 
     <script
-      type="module"
-      src="{{ url_for('static', filename='js/crowd_busy_hours.js') }}"
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_busy_hours.js') }}"
     ></script>
-  </body>
+
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/train_alerts.js') }}"
+    ></script>
+</body>
 </html>
