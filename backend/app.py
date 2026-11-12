@@ -13,7 +13,8 @@ from crowd_alert_import_scheduler import start_collector
 app = Flask(
     __name__,
     template_folder="../frontend/templates",
-    static_folder="../frontend/static/css",
+    static_folder="../frontend/static",
+    static_url_path="/static",
 )
 app.json.ensure_ascii = False   # Show Chinese characters as-is in JSON
 app.json.sort_keys = False      # Preserve SQL result column order
