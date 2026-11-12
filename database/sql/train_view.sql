@@ -39,7 +39,7 @@ WHERE a.line_code <> b.line_code;
 CREATE OR REPLACE VIEW v_station_ordered AS
 SELECT sl.line_code, s.station_code, s.station_name_english,
     REGEXP_SUBSTR(s.station_code, '^[A-Za-z]+') AS code_prefix,
-    CAST(REGEXP_SUBSTR(s.station_code, '[0-9]+') AS UNSIGNED) AS code_number
+    CAST(NULLIF(REGEXP_SUBSTR(s.station_code, '[0-9]+'), '') AS UNSIGNED) AS code_number
 FROM TrainStation AS s
 INNER JOIN StationLine AS sl
 ON s.station_code = sl.station_code;
