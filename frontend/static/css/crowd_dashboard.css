@@ -1,0 +1,50 @@
+.train-status {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.train-status--normal {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}
+
+.train-status--disrupted {
+    background-color: #ffebee;
+    color: #b71c1c;
+}
+
+.train-status--unknown {
+    background-color: #f1f3f5;
+    color: #343a40;
+}
+
+.advisory-card {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+}
+
+.advisory-card dt {
+    font-weight: 600;
+}
+
+.advisory-card dd {
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+}
+
+.advisory-text {
+    white-space: pre-wrap;
+}
+
+.additional-information {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.table-container {
+    overflow-x: auto;
+}
