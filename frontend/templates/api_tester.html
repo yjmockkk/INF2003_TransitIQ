@@ -2,75 +2,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-  <link rel="stylesheet" href="{{ url_for('static', filename='test.css') }}">    
-  <meta charset="utf-8" />
+    <meta charset="utf-8" />
     <title>TransitIQ API Tester</title>
-
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-      .row {
-        margin: 6px 0;
-      }
-      button {
-        margin-right: 6px;
-        padding: 5px 10px;
-        cursor: pointer;
-      }
-      input {
-        padding: 4px;
-      }
-      .tabs {
-        margin-bottom: 16px;
-      }
-      .tabs button.active {
-        background: #1b0f88;
-        color: white;
-      }
-      pre {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        padding: 12px;
-        max-height: 420px;
-        overflow: auto;
-      }
-      #status {
-        font-weight: bold;
-        margin: 8px 0;
-      }
-      table {
-        border-collapse: collapse;
-        margin-top: 8px;
-      }
-      td,
-      th {
-        border: 1px solid #aaa;
-        padding: 4px 8px;
-      }
-      #bus-panel fieldset {
-        margin: 18px 0;
-        padding: 14px;
-        border: 1px solid #aaa;
-      }
-      #bus-panel legend {
-        font-weight: bold;
-      }
-      #bus-panel .crud-fields {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 12px;
-      }
-      #bus-panel .crud-fields label {
-        display: grid;
-        gap: 5px;
-      }
-    </style>
-  </head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}" />  </head>
 
   <body>
-    <h2>TransitIQ API Tester</h2>
+    <header class="page-header">
+    <h1>TransitIQ API Tester</h1>
+    </header>
 
     <div class="tabs">
       <button id="train-tab" class="active" onclick="showTab('train')">
@@ -203,7 +142,6 @@
       <div class="row">
         Search
         <input id="bus_q" placeholder="Stop code, road or stop name" />
-        <button onclick="call('/api/bus/stops?q=' + v('bus_q'))">
 
         <button
           type="button"

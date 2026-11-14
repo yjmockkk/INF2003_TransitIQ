@@ -4,19 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Station Crowd Levels</title>
-    <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/crowd_dashboard.css') }}"
-    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crowd_dashboard.css') }}">
 </head>
 
 <body>
-    <a href="/">Back to API Tester</a>
+  <header class="page-header">
+    <a href="/">← Back to API Tester</a>
+    <h1>Service Status &amp; Travel Advisories</h1>
+  </header>
 
     <section aria-labelledby="train-alert-title">
-        <h2 id="train-alert-title">
-            Service Status &amp; Travel Advisories
-        </h2>
 
         <h3>Train service status</h3>
 
@@ -41,9 +39,10 @@
 
     <hr>
 
-    <h1>Station Crowd Levels</h1>
-
+    <div class="section-header">
+    <h2>Station Crowd Levels</h2>
     <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
+</div>
     <p>Check the observation period to see when each crowd level applies.</p>
 
     <p>
