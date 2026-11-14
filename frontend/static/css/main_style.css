@@ -1,0 +1,360 @@
+/* This is TransitIQ's main CSS file. */
+
+/* Theme */
+:root {
+  --primary: #1b0f88;
+  --primary-hover: #2d20b0;
+  --bg: #f4f5fb;
+  --card: #ffffff;
+  --border: #d0d4e4;
+  --text: #1f2333;
+  --muted: #6b7088;
+  --radius: 6px;
+  --nsl: #d42e12;
+  --ewl: #009645;
+  --nel: #9900aa;
+  --ccl: #fa9e0d;
+  --dtl: #005ec4;
+  --tel: #9d5b25;
+  --lrt: #748477;
+}
+
+/* Basic stuff. */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  margin: 20px;
+  padding: 0 4px;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h2 {
+  color: var(--primary);
+  font-size: 1.25rem;
+  margin: 28px 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--border);
+}
+
+.row {
+  margin: 6px 0;
+}
+
+/* The headers. */
+.page-header,
+.section-header {
+  margin: 28px 0 16px;
+  padding: 14px 20px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 6px solid transparent;
+  border-image: linear-gradient(
+      to right,
+      var(--nsl) 0 14.28%,
+      var(--ewl) 0 28.57%,
+      var(--nel) 0 42.85%,
+      var(--ccl) 0 57.14%,
+      var(--dtl) 0 71.42%,
+      var(--tel) 0 85.71%,
+      var(--lrt) 0
+    ) 1;
+}
+
+.page-header {
+  margin: -20px -24px 20px;
+  padding: 14px 24px 18px;
+}
+
+.page-header h1 {
+  margin: 6px 0 0;
+  color: #fff;
+  font-size: 1.8rem;
+}
+
+.page-header a {
+  color: #cfd3ff;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.page-header a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.section-header h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.section-header p {
+  margin: 4px 0 0;
+  color: #cfd3ff;
+  font-size: 0.95rem;
+}
+
+/* The clickable buttons. */
+button {
+  margin: 3px 6px 3px 0;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--primary);
+  background: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+button:hover {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(27, 15, 136, 0.25);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Tabs. */
+.tabs {
+  margin-bottom: 16px;
+}
+
+.tabs button.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* The input boxes. */
+input {
+  padding: 5px 8px;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+}
+
+input::placeholder {
+  color: var(--muted);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(27, 15, 136, 0.15);
+}
+
+input:not([placeholder]):not([value]) {
+  display: none;
+}
+
+select {
+  padding: 5px 8px;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(27, 15, 136, 0.15);
+}
+
+/* The output. */
+pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  max-height: 420px;
+  overflow: auto;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#status {
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+/* The tables. */
+table {
+  border-collapse: collapse;
+  margin-top: 8px;
+  background: var(--card);
+}
+
+td,
+th {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+}
+
+th {
+  background: var(--primary);
+  color: #fff;
+}
+
+tr:nth-child(even) td {
+  background: #f0f2fa;
+}
+
+/* The bus panel */
+#bus-panel fieldset {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+#bus-panel legend {
+  font-weight: bold;
+  color: var(--primary);
+  padding: 0 6px;
+}
+
+#bus-panel .crud-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+#bus-panel .crud-fields label {
+  display: grid;
+  gap: 5px;
+}
+
+/* The route visuals. */
+.route-summary {
+  margin: 12px 0;
+  padding: 10px 14px;
+  font-weight: 600;
+  background: var(--card);
+  border-left: 5px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.leg-card {
+  --c: var(--primary);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 8px solid var(--c);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.leg-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.leg-badge {
+  background: var(--c);
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.leg-route { font-weight: 600; font-size: 1.05rem; }
+.leg-stops { margin-left: auto; color: var(--muted); }
+
+.leg-details { margin-top: 6px; color: var(--muted); }
+.leg-details summary { cursor: pointer; color: var(--primary); }
+.leg-details ul { margin: 6px 0 0; padding-left: 20px; }
+
+.leg-change {
+  margin: 6px 0 6px 18px;
+  padding: 2px 12px;
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: #e8eaff;
+  border-radius: 999px;
+}
+.leg-change::before { content: "⇅ "; }
+
+.leg-card[data-line="NSL"] { --c: var(--nsl); }
+.leg-card[data-line="EWL"],
+.leg-card[data-line="CG"]  { --c: var(--ewl); }
+.leg-card[data-line="NEL"] { --c: var(--nel); }
+.leg-card[data-line="CCL"],
+.leg-card[data-line="CE"]  { --c: var(--ccl); }
+.leg-card[data-line="DTL"] { --c: var(--dtl); }
+.leg-card[data-line="TEL"] { --c: var(--tel); }
+.leg-card[data-line="BP"],
+.leg-card[data-line="SK"],
+.leg-card[data-line="PG"]  { --c: var(--lrt); }
+
+.opt-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.opt-best { border-color: var(--ewl); box-shadow: 0 0 0 2px rgba(0, 150, 69, 0.2); }
+
+.opt-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.opt-arrow { color: var(--muted); }
+.opt-count { margin-left: auto; color: var(--muted); font-weight: 600; }
+.opt-more { color: var(--muted); font-style: italic; }
+
+.opt-tag {
+  background: var(--ewl);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.line-pill {
+  --c: var(--primary);
+  background: var(--c);
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 999px;
+}
+
+.line-pill[data-line="NSL"] { --c: var(--nsl); }
+.line-pill[data-line="EWL"],
+.line-pill[data-line="CG"]  { --c: var(--ewl); }
+.line-pill[data-line="NEL"] { --c: var(--nel); }
+.line-pill[data-line="CCL"],
+.line-pill[data-line="CE"]  { --c: var(--ccl); }
+.line-pill[data-line="DTL"] { --c: var(--dtl); }
+.line-pill[data-line="TEL"] { --c: var(--tel); }
+.line-pill[data-line="BP"],
+.line-pill[data-line="SK"],
+.line-pill[data-line="PG"]  { --c: var(--lrt); }
+
+/* The miscalleneous stuff. */
+hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 24px 0;
+}
