@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <title>TransitIQ API Tester</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}" />  </head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main_style.css') }}" />  </head>
 
   <body>
     <header class="page-header">
@@ -104,7 +104,7 @@
         <input id="r_to" value="NE17" size="8" />
         <button
           onclick="
-            call(
+            showRoute(
               '/api/train/analytics/route?from=' +
                 v('r_from') +
                 '&to=' +
@@ -116,7 +116,7 @@
         </button>
         <button
           onclick="
-            call(
+            showRoute(
               '/api/train/analytics/shortest-route?from=' +
                 v('r_from') +
                 '&to=' +
@@ -474,7 +474,9 @@
 
     <div id="status" role="status"></div>
     <div id="table"></div>
+    <div id="route-visual"></div>
     <pre id="out">Click a button to call the API.</pre>
+    
 
     <script>
       // Ignore responses from requests made before switching tabs
@@ -952,6 +954,145 @@
           "&destination_code=" +
           v("destination_code")
         );
+      }
+
+      async function showRoute(url) {
+        call(url);
+        const box = document.getElementById("route-visual");
+        box.replaceChildren();
+        try {
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json && json.data && json.data.steps) {
+            renderRoute(json);
+          } else {
+            renderTransfers(json);
+          }
+        } catch (err) {
+          console.error("Route visual failed:", err);
+        }
+      }
+
+      function renderTransfers(json) {
+        const box = document.getElementById("route-visual");
+        box.replaceChildren();
+        const d = json && json.data;
+        const list = Array.isArray(d) ? d : d && (d.routes || d.options || d.paths);
+        if (!Array.isArray(list) || !list.length || !Array.isArray(list[0].lines)) return;
+
+        const el = (tag, cls, text) => {
+          const e = document.createElement(tag);
+          if (cls) e.className = cls;
+          if (text !== undefined) e.textContent = text;
+          return e;
+        };
+
+        const best = Math.min(...list.map(o => o.transfers));
+        const shown = list.slice(0, 10);
+
+        box.appendChild(el("div", "route-summary",
+          `${list.length} route option${list.length === 1 ? "" : "s"} · ` +
+          `fewest transfers: ${best}`));
+
+        shown.forEach(opt => {
+          const card = el("div", "opt-card");
+          if (opt.transfers === best) card.classList.add("opt-best");
+
+          const chain = el("div", "opt-chain");
+          opt.lines.forEach((ln, i) => {
+            if (i) chain.appendChild(el("span", "opt-arrow", "→"));
+            const pill = el("span", "line-pill", ln);
+            pill.dataset.line = ln;
+            chain.appendChild(pill);
+          });
+          card.appendChild(chain);
+
+          const label = opt.transfers === 0
+            ? "Direct, no transfers"
+            : `${opt.transfers} transfer${opt.transfers === 1 ? "" : "s"}`;
+          card.appendChild(el("span", "opt-count", label));
+          if (opt.transfers === best) card.appendChild(el("span", "opt-tag", "Fewest"));
+          box.appendChild(card);
+        });
+
+        if (list.length > shown.length) {
+          box.appendChild(el("div", "opt-more",
+            `+ ${list.length - shown.length} more options not shown`));
+        }
+      }
+
+      function renderRoute(json) {
+        const box = document.getElementById("route-visual");
+        box.replaceChildren();
+        const d = json.data;
+        if (!d || !d.steps || !d.steps.length) return;
+
+        const legs = [];
+        let cur = null;
+        d.steps.forEach((s, i) => {
+          const last = i === d.steps.length - 1;
+          if (!cur) {
+            cur = { line: s.depart_line || s.arrive_line, stations: [s] };
+            legs.push(cur);
+            return;
+          }
+          cur.stations.push(s);
+          const transfer =
+            s.arrive_line && s.depart_line && s.arrive_line !== s.depart_line;
+          if (transfer && !last) {
+            cur = { line: s.depart_line, stations: [s] };
+            legs.push(cur);
+          }
+        });
+
+        const el = (tag, cls, text) => {
+          const e = document.createElement(tag);
+          if (cls) e.className = cls;
+          if (text !== undefined) e.textContent = text;
+          return e;
+        };
+
+        const summary = el("div", "route-summary",
+          `${d.from.station_name_english} → ${d.to.station_name_english} · ` +
+          `${d.total_stops} stops · ${d.line_changes} line changes`);
+        box.appendChild(summary);
+
+        legs.forEach((leg, i) => {
+          const first = leg.stations[0];
+          const end = leg.stations[leg.stations.length - 1];
+          const stops = leg.stations.length - 1;
+
+          const card = el("div", "leg-card");
+          card.dataset.line = leg.line;
+
+          const head = el("div", "leg-head");
+          head.append(
+            el("span", "leg-badge", leg.line),
+            el("span", "leg-route",
+              `${first.station_name_english} → ${end.station_name_english}`),
+            el("span", "leg-stops", `${stops} stop${stops === 1 ? "" : "s"}`)
+          );
+          card.appendChild(head);
+
+          const middle = leg.stations.slice(1, -1);
+          if (middle.length) {
+            const det = el("details", "leg-details");
+            det.appendChild(el("summary", "", `Show ${middle.length} stops in between`));
+            const ul = el("ul");
+            middle.forEach(m =>
+              ul.appendChild(el("li", "", `${m.station_name_english} (${m.station_codes})`)));
+            det.appendChild(ul);
+            card.appendChild(det);
+          }
+          box.appendChild(card);
+
+          const next = legs[i + 1];
+          if (next) {
+            const chip = el("div", "leg-change",
+              `Change at ${end.station_name_english}: ${leg.line} → ${next.line}`);
+            box.appendChild(chip);
+          }
+        });
       }
 
       // END added bus CRUD and analysis helpers

@@ -1,3 +1,4 @@
+/* This is TransitIQ's other CSS file, which includes the crowd dashboard stuff. */
 
 /* Status banner */
 .train-status {
@@ -34,28 +35,5 @@
 .table-container table {
   width: 100%;
   margin-top: 0;
-}
-
-
-
-.page-header h1 {
-  margin: 6px 0 0;
-  padding: 0;
-  background: none;
-  border: none;
-  border-image: none;
-  color: #fff;
-  font-size: 1.8rem;
-}
-
-.page-header a {
-  color: #cfd3ff;
-  font-size: 0.95rem;
-  text-decoration: none;
-}
-
-.page-header a:hover {
-  color: #fff;
-  text-decoration: underline;
 }
 
