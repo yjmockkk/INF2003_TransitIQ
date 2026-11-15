@@ -130,6 +130,20 @@
       <div id="route-visual"></div>
     </section>
 
+          <!-- BUS ARRIVALS -->
+      <h3>Bus Arrivals</h3>
+
+      <div class="row">
+        Stop code
+        <input id="arr_stop" placeholder="e.g. 46009" size="10" />
+
+        <button type="button" onclick="showArrivals(v('arr_stop'))">
+          GET arrivals
+        </button>
+      </div>
+
+      <div id="arrival-visual"></div>
+    
     <!-- BUS CONTROLS -->
     <section id="bus-panel" hidden>
       <h3>Browse Bus Data</h3>
@@ -895,6 +909,8 @@
             ) + error.message;
         }
       }
+      // END added bus CRUD and analysis helpers
+
 
       async function listCreated(kind) {
         const version = ++requestVersion;
@@ -954,6 +970,86 @@
           "&destination_code=" +
           v("destination_code")
         );
+      }
+
+
+      const ARRIVALS_URL = "/api/bus-arrivals/";
+
+      const LOAD_INFO = {
+        SEA: { cls: "ld-sea", label: "Seats" },
+        SDA: { cls: "ld-sda", label: "Standing" },
+        LSD: { cls: "ld-lsd", label: "Crowded" },
+      };
+      const TYPE_LABEL = { SD: "Single deck", DD: "Double deck", BD: "Bendy" };
+
+      function escHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        }[c]));
+      }
+
+      async function showArrivals(code) {
+        const box = document.getElementById("arrival-visual");
+        code = (code || "").trim();
+        if (!code) {
+          box.innerHTML = '<p class="arr-msg">Enter a bus stop code.</p>';
+          return;
+        }
+        box.innerHTML = '<p class="arr-msg">Loading arrivals…</p>';
+        try {
+          const res = await fetch(ARRIVALS_URL + encodeURIComponent(code) + "/latest");
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || res.status);
+          renderArrivals(body.data, code);
+        } catch (e) {
+          box.innerHTML = `<p class="arr-msg">Couldn't load arrivals: ${escHtml(e.message)}</p>`;
+        }
+      }
+
+      function arrivalChip(bus, ageMin) {
+        if (!bus || bus.minutes_away == null) return "";
+        const mins = Math.round(bus.minutes_away - ageMin);
+        const time = mins <= 0 ? "Arr" : mins + " min";
+        const load = LOAD_INFO[bus.load] || { cls: "ld-na", label: bus.load || "" };
+        const type = TYPE_LABEL[bus.bus_type] || "";
+        return `<div class="arr-chip ${load.cls}" title="${escHtml(type)}">
+          <span class="arr-time">${time}</span>
+          <span class="arr-sub">${escHtml(load.label)} · ${escHtml(type || bus.bus_type || "")}</span>
+        </div>`;
+      }
+
+      function renderArrivals(doc, code) {
+        const box = document.getElementById("arrival-visual");
+        const fetched = new Date(doc.fetched_at);
+        const ageMin = Math.max(0, (Date.now() - fetched) / 60000);
+        const ageText = ageMin < 1 ? "just now" : Math.round(ageMin) + " min ago";
+        const name = doc.bus_stop_name ? " – " + doc.bus_stop_name : "";
+
+        const services = (doc.services || []).slice().sort(
+          (a, b) => parseInt(a.service_no) - parseInt(b.service_no) ||
+                    String(a.service_no).localeCompare(String(b.service_no))
+        );
+
+        let html = `<div class="arr-head">
+          <div><strong>Stop ${escHtml(code)}${escHtml(name)}</strong>
+          <span class="arr-updated">Snapshot ${ageText}</span></div>
+          <button type="button" onclick="showArrivals('${escHtml(code)}')">Refresh</button>
+        </div>`;
+
+        if (!services.length) {
+          html += '<p class="arr-msg">No buses in this snapshot.</p>';
+        } else {
+          html += '<div class="arr-grid">';
+          for (const s of services) {
+            const chips = (s.next_buses || []).map((b) => arrivalChip(b, ageMin)).join("");
+            html += `<div class="arr-card">
+              <div class="arr-svc">${escHtml(s.service_no)}</div>
+              <div class="arr-chips">${chips || '<span class="arr-msg">No data</span>'}</div>
+            </div>`;
+          }
+          html += "</div>";
+        }
+        box.innerHTML = html;
       }
 
       async function showRoute(url) {
@@ -1095,7 +1191,6 @@
         });
       }
 
-      // END added bus CRUD and analysis helpers
     </script>
   </body>
 </html>
