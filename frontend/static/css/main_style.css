@@ -235,7 +235,7 @@ tr:nth-child(even) td {
   gap: 5px;
 }
 
-/* The route visuals. */
+/* The bus & MRT visuals. */
 .route-summary {
   margin: 12px 0;
   padding: 10px 14px;
@@ -351,6 +351,39 @@ tr:nth-child(even) td {
 .line-pill[data-line="BP"],
 .line-pill[data-line="SK"],
 .line-pill[data-line="PG"]  { --c: var(--lrt); }
+
+#arrival-visual { margin-top: 12px; }
+
+.arr-head {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #4f46e5; color: #fff; padding: 8px 12px; border-radius: 8px 8px 0 0;
+}
+.arr-updated { margin-left: 10px; font-size: 12px; opacity: 0.85; }
+
+.arr-grid {
+  display: grid; gap: 8px; padding: 10px;
+  border: 1px solid #c7d2fe; border-top: 0; border-radius: 0 0 8px 8px;
+  background: #f5f7ff;
+}
+.arr-card {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border: 1px solid #e0e7ff; border-radius: 8px; padding: 8px 12px;
+}
+.arr-svc { min-width: 64px; font-size: 22px; font-weight: 700; color: #3730a3; }
+.arr-svc small { display: block; font-size: 11px; font-weight: 400; color: #6b7280; }
+
+.arr-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.arr-chip {
+  min-width: 110px; text-align: center; padding: 4px 10px;
+  border-radius: 6px; border-left: 5px solid #9ca3af; background: #f3f4f6;
+}
+.arr-time { display: block; font-weight: 700; white-space: nowrap; }
+.arr-sub { font-size: 11px; color: #4b5563; }
+.ld-sea { border-left-color: #16a34a; background: #f0fdf4; }
+.ld-sda { border-left-color: #f59e0b; background: #fffbeb; }
+.ld-lsd { border-left-color: #dc2626; background: #fef2f2; }
+
+.arr-msg { color: #6b7280; margin: 8px 0; }
 
 /* The miscalleneous stuff. */
 hr {
