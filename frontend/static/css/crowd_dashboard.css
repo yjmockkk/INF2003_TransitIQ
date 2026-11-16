@@ -1,50 +1,39 @@
+/* This is TransitIQ's other CSS file, which includes the crowd dashboard stuff. */
+
+/* Status banner */
 .train-status {
-    padding: 12px 16px;
-    border-radius: 6px;
-    font-weight: 600;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  border-left: 5px solid currentColor;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .train-status--normal {
-    background-color: #e8f5e9;
-    color: #1b5e20;
+  background-color: #e8f5e9;
+  color: #1b5e20;
 }
 
 .train-status--disrupted {
-    background-color: #ffebee;
-    color: #b71c1c;
+  background-color: #ffebee;
+  color: #b71c1c;
 }
 
 .train-status--unknown {
-    background-color: #f1f3f5;
-    color: #343a40;
+  background-color: #f1f3f5;
+  color: #343a40;
 }
 
-.advisory-card {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    overflow-wrap: anywhere;
-}
-
-.advisory-card dt {
-    font-weight: 600;
-}
-
-.advisory-card dd {
-    margin-bottom: 8px;
-    white-space: pre-wrap;
-}
-
-.advisory-text {
-    white-space: pre-wrap;
-}
-
-.additional-information {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
+/* Table wrapper */
 .table-container {
-    overflow-x: auto;
+  overflow-x: auto;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+
+.table-container table {
+  width: 100%;
+  margin-top: 0;
+}
+
