@@ -1,0 +1,110 @@
+[{
+  "_id": {
+    "$oid": "6ae4c1911b6f4979fea0fed7"
+  },
+  "source": "LTA DataMall",
+  "status": "1",
+  "payload": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": []
+  },
+  "fingerprint": "9039954edb776be438cc5f1237a603bad6ab478e574763dcb440f158f39593e3",
+  "fetched_at": {
+    "$date": "2026-10-30T16:10:57.372Z"
+  },
+  "last_seen_at": {
+    "$date": "2026-11-09T16:20:23.292Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6af2b73eb8e861a0d879faf3"
+  },
+  "source": "LTA DataMall",
+  "status": "1",
+  "payload": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": [
+      {
+        "Content": "10/11/2026 11:05-Bus services 170 and 170X have been diverted from Woodlands Road to ply along Woodlands Avenue 3 and Woodlands Centre Road in the Woodlands Direction, due to heavy traffic entering Woodlands Checkpoint.",
+        "CreatedDate": "2026-11-10 11:08:03"
+      }
+    ]
+  },
+  "fingerprint": "d3a053cdfc263228393b93d8d67898c73c8be159f678146593bd8b18a91bf8f4",
+  "fetched_at": {
+    "$date": "2026-11-10T06:18:38.659Z"
+  },
+  "last_seen_at": {
+    "$date": "2026-11-10T07:12:15.577Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6af5db43c9588283326dd025"
+  },
+  "source": "LTA DataMall",
+  "status": "1",
+  "payload": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": [
+      {
+        "Content": "12/11/2026 09:37-Bus services 170 and 170X have been diverted from Woodlands Road to ply along Woodlands Avenue 3 and Woodlands Centre Road in the Woodlands Direction, due to heavy traffic entering Woodlands Checkpoint.",
+        "CreatedDate": "2026-11-12 09:38:08"
+      }
+    ]
+  },
+  "fingerprint": "6bbe9e4dd7685a36f96af26e3dd190fadebf929b241bc8b4ac78663a0889b6c7",
+  "fetched_at": {
+    "$date": "2026-11-12T15:29:07.461Z"
+  },
+  "last_seen_at": {
+    "$date": "2026-11-12T15:44:06.151Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6af5e24a952461522c89b676"
+  },
+  "source": "LTA DataMall",
+  "status": "1",
+  "payload": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": []
+  },
+  "fingerprint": "9039954edb776be438cc5f1237a603bad6ab478e574763dcb440f158f39593e3",
+  "fetched_at": {
+    "$date": "2026-11-12T15:59:06.260Z"
+  },
+  "last_seen_at": {
+    "$date": "2026-11-12T16:29:06.201Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6afad4d2d15970d41efadccc"
+  },
+  "source": "LTA DataMall",
+  "status": "1",
+  "payload": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": [
+      {
+        "Content": "16/11/2026 17:02-Bus services 170 and 170X have been diverted from Woodlands Road to ply along Woodlands Avenue 3 and Woodlands Centre Road in the Woodlands Direction, due to heavy traffic entering Woodlands Checkpoint.",
+        "CreatedDate": "2026-11-16 17:03:07"
+      }
+    ]
+  },
+  "fingerprint": "ebf29d07bc54bc8924609c9f7842d036d4b112cb12d96b9835a14bbe6ea914df",
+  "fetched_at": {
+    "$date": "2026-11-16T10:02:58.332Z"
+  },
+  "last_seen_at": {
+    "$date": "2026-11-16T13:13:21.999Z"
+  }
+}]
