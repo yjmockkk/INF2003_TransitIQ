@@ -33,6 +33,22 @@ const resetButton = document.getElementById("reset");
 
 const stationNameLookup = new Map();
 
+const fallbackStationNames = new Map([
+    ["CC18", "Bukit Brown / 武吉布朗"],
+    ["CC30", "Keppel / 岌巴"],
+    ["CC31", "Cantonment / 广东民"],
+    ["CC32", "Prince Edward Road / 爱德华太子路"],
+    ["CC33", "Marina Bay / 滨海湾"],
+    ["CC34", "Bayfront / 海湾舫"],
+    ["DT36", "Xilin / 锡林"],
+    ["DT37", "Sungei Bedok / 双溪勿洛"],
+    ["TE10", "Mount Pleasant / 快乐山"],
+    ["TE21", "Marina South / 滨海南"],
+    ["TE22A", "Founders’ Memorial / 建国先贤纪念园"],
+    ["TE30", "Bedok South / 勿洛南"],
+    ["TE31", "Sungei Bedok / 双溪勿洛"]
+]);
+
 let observations = [];
 let loading = false;
 let hasLoaded = false;
@@ -149,11 +165,13 @@ function displayRows() {
 
         appendCell(row, item.station_code);
 
+        const stationCode = item.station_code.trim().toUpperCase();
+
         appendCell(
             row,
-            stationNameLookup.get(
-                item.station_code.toUpperCase()
-            ) || "Not available"
+            stationNameLookup.get(stationCode) ||
+            fallbackStationNames.get(stationCode) ||
+            "Not available"
         );
 
         appendCell(
