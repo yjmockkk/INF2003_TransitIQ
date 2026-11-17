@@ -204,7 +204,7 @@ function displayRows() {
         counts[level]++;
     }
 
-    summary.textContent =
+    if (summary) summary.textContent =
         `Showing ${filtered.length} station readings: ` +
         `${counts.l} Low | ` +
         `${counts.m} Moderate | ` +

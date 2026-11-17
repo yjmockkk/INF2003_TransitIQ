@@ -9,14 +9,14 @@
 </head>
 
 <body>
-  <header class="page-header">
-    <a href="/">← Back to API Tester</a>
-    <h1>Service Status &amp; Travel Advisories</h1>
-  </header>
+    <header class="page-header crowd-header">
+        <a class="dashboard-back" href="/" aria-label="Back to home">←</a>
+        <h1>Service Status &amp; Travel Advisories</h1>
+    </header>
 
     <section aria-labelledby="train-alert-title">
 
-        <h3>Train service status</h3>
+        <h3 id="train-alert-title">Train service status</h3>
 
         <p
             id="train-alert-status"
@@ -30,8 +30,6 @@
 
         <div id="train-alert-details"></div>
 
-        <p id="train-alert-checked"></p>
-
         <button id="train-alert-refresh" type="button">
             Refresh service status
         </button>
@@ -39,81 +37,121 @@
 
     <hr>
 
-    <div class="section-header">
-    <h2>Station Crowd Levels</h2>
-    <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
-</div>
-    <p>Check the observation period to see when each crowd level applies.</p>
-
-    <p>
-        <label for="line">Train line:</label>
-        <select id="line">
-            <option value="">All lines</option>
-            <option value="CCL">Circle Line</option>
-            <option value="CEL">Circle Line Extension</option>
-            <option value="CGL">Changi Extension</option>
-            <option value="DTL">Downtown Line</option>
-            <option value="EWL">East West Line</option>
-            <option value="NEL">North East Line</option>
-            <option value="NSL">North South Line</option>
-            <option value="BPL">Bukit Panjang LRT</option>
-            <option value="SLRT">Sengkang LRT</option>
-            <option value="PLRT">Punggol LRT</option>
-            <option value="TEL">Thomson-East Coast Line</option>
-        </select>
-
-        <label for="station">Station code:</label>
-        <input
-            id="station"
-            type="search"
-            placeholder="e.g. NS17"
+    <div
+        class="crowd-tabs"
+        role="tablist"
+        aria-label="Station crowd information"
+    >
+        <button
+            id="latest-tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="latest-panel"
+            tabindex="0"
         >
+            Station Crowd Levels
+        </button>
 
-        <label for="crowd">Crowd level:</label>
-        <select id="crowd">
-            <option value="">All levels</option>
-            <option value="l">Low</option>
-            <option value="m">Moderate</option>
-            <option value="h">High</option>
-            <option value="NA">Not available</option>
-        </select>
-
-        <button id="reset" type="button">Clear filters</button>
-        <button id="refresh" type="button">Refresh</button>
-    </p>
-
-    <p id="message" role="status">Loading station information...</p>
-    <p id="refresh-time"></p>
-    <p id="summary"></p>
-
-    <div class="table-container">
-        <table border="1" cellpadding="10" cellspacing="0">
-            <thead>
-                <tr>
-                    <th scope="col">Station code</th>
-                    <th scope="col">Station name</th>
-                    <th scope="col">Train line</th>
-                    <th scope="col">Crowd level</th>
-                    <th scope="col">Observation period</th>
-                    <th scope="col">Last collected</th>
-                </tr>
-            </thead>
-
-            <tbody id="results"></tbody>
-        </table>
+        <button
+            id="busy-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="busy-panel"
+            tabindex="-1"
+        >
+            Station Busy Hours
+        </button>
     </div>
 
-    <p>All times are shown in Singapore time.</p>
+    <section
+        id="latest-panel"
+        role="tabpanel"
+        aria-labelledby="latest-tab"
+        tabindex="0"
+    >
+        <div class="section-header">
+            <h2>Station Crowd Levels</h2>
+            <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
+        </div>
 
-    <p>
-        “Not available” means the source has no crowd level available.
-        It does not mean the station is uncrowded.
-    </p>
+        <p>
+            <label for="line">Train line:</label>
+            <select id="line">
+                <option value="">All lines</option>
+                <option value="CCL">Circle Line</option>
+                <option value="CEL">Circle Line Extension</option>
+                <option value="CGL">Changi Extension</option>
+                <option value="DTL">Downtown Line</option>
+                <option value="EWL">East West Line</option>
+                <option value="NEL">North East Line</option>
+                <option value="NSL">North South Line</option>
+                <option value="BPL">Bukit Panjang LRT</option>
+                <option value="SLRT">Sengkang LRT</option>
+                <option value="PLRT">Punggol LRT</option>
+                <option value="TEL">Thomson-East Coast Line</option>
+            </select>
 
-    <hr>
+            <label for="station">Station code:</label>
+            <input
+                id="station"
+                type="search"
+                placeholder="e.g. NS17"
+            >
 
-    <section aria-labelledby="busy-hours-title">
+            <label for="crowd">Crowd level:</label>
+            <select id="crowd">
+                <option value="">All levels</option>
+                <option value="l">Low</option>
+                <option value="m">Moderate</option>
+                <option value="h">High</option>
+                <option value="NA">Not available</option>
+            </select>
+
+            <button id="reset" type="button">Clear filters</button>
+            <button id="refresh" type="button">Refresh</button>
+        </p>
+
+        <p id="message" role="status">Loading station information...</p>
+        <p id="refresh-time"></p>
+
+        <div class="table-container">
+            <table border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th scope="col">Station code</th>
+                        <th scope="col">Station name</th>
+                        <th scope="col">Train line</th>
+                        <th scope="col">Crowd level</th>
+                        <th scope="col">Observation period</th>
+                        <th scope="col">Last collected</th>
+                    </tr>
+                </thead>
+
+                <tbody id="results"></tbody>
+            </table>
+        </div>
+
+        <p>All times are shown in Singapore time.</p>
+
+        <p>
+            “Not available” means the source has no crowd level available.
+            It does not mean the station is uncrowded.
+        </p>
+    </section>
+
+    <section
+        id="busy-panel"
+        role="tabpanel"
+        aria-labelledby="busy-tab"
+        tabindex="0"
+        hidden
+    >
+    <div class="section-header">
         <h2 id="busy-hours-title">Station Busy Hours</h2>
+        <p>View recorded crowd patterns by hour at MRT and LRT stations.</p>
+    </div>
 
         <form id="busy-hours-form">
             <label for="busy-search">Station name or code:</label>
@@ -159,6 +197,11 @@
     <script
         type="module"
         src="{{ url_for('static', filename='js/train_alerts.js') }}"
+    ></script>
+
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_tabs.js') }}"
     ></script>
 </body>
 </html>

@@ -132,71 +132,228 @@ async function populateLineTable(station, section, status) {
             throw new Error("Unexpected crowd information received.");
         }
 
-        const rows = body.data
-            .filter(item =>
-                item.hour >= 6 &&
-                item.hour <= 23
-            )
-            .sort((a, b) => a.hour - b.hour);
+        const observationsByHour = new Map();
 
-        if (rows.length === 0) {
+        for (const item of body.data) {
+            const hour = Number(item.hour);
+            const raw = item.high_percentage;
+
+            if (
+                !Number.isInteger(hour) ||
+                hour < 6 ||
+                hour > 23 ||
+                raw === null ||
+                raw === undefined ||
+                raw === ""
+            ) {
+                continue;
+            }
+
+            const percentage = Number(raw);
+
+            if (
+                Number.isFinite(percentage) &&
+                percentage >= 0 &&
+                percentage <= 100
+            ) {
+                observationsByHour.set(hour, percentage);
+            }
+        }
+
+        if (observationsByHour.size === 0) {
             status.textContent =
                 "No crowd history is available for this station code.";
             return;
         }
 
-        status.textContent = "6 AM–11 PM Singapore time.";
+        status.textContent = "";
 
-        const wrapper = document.createElement("div");
-        wrapper.style.overflowX = "auto";
+        const figure = document.createElement("figure");
+        figure.className = "busy-chart";
 
-        const table = document.createElement("table");
-        table.setAttribute("border", "1");
-        table.setAttribute("cellpadding", "10");
-        table.setAttribute("cellspacing", "0");
+        const header = document.createElement("div");
+        header.className = "busy-chart-header";
 
-        const thead = document.createElement("thead");
-        const headerRow = document.createElement("tr");
+        const summary = document.createElement("div");
+        summary.className = "busy-chart-summary";
 
-        for (const title of [
-            "Station code",
-            "Line",
-            "Time (Singapore)",
-            "How often was it crowded?"
-        ]) {
-            const heading = document.createElement("th");
-            heading.scope = "col";
-            heading.textContent = title;
+        const eyebrow = document.createElement("span");
+        eyebrow.className = "busy-chart-eyebrow";
+        eyebrow.textContent = "PEAK RECORDED HOUR";
 
-            headerRow.appendChild(heading);
+        const peakValue = Math.max(...observationsByHour.values());
+
+        const peakHours = Array.from(observationsByHour)
+            .filter(([, value]) => value === peakValue)
+            .map(([hour]) => formatHour(hour));
+
+        const peakTime = document.createElement("strong");
+
+        const peakDetail = document.createElement("span");
+        peakDetail.className = "busy-chart-peak-detail";
+
+        if (peakValue < 10) {
+            eyebrow.textContent = "CROWD PATTERN";
+            peakTime.textContent = "Low frequency across recorded hours";
+            peakDetail.textContent =
+                "Every available hour had fewer than 10% crowded observations.";
+        } else {
+            peakTime.textContent = peakHours.join(" · ");
+            peakDetail.textContent =
+                `${formatPercentage(peakValue)} of observations were crowded`;
         }
 
-        thead.appendChild(headerRow);
+        summary.append(eyebrow, peakTime, peakDetail);
 
-        const tbody = document.createElement("tbody");
+        const legend = document.createElement("div");
+        legend.className = "busy-chart-legend";
+        legend.setAttribute("aria-label", "Crowded observation frequency");
 
-        for (const item of rows) {
-            const row = document.createElement("tr");
+        for (const [className, label] of [
+            ["low", "Below 25%"],
+            ["medium", "25–49%"],
+            ["high", "50% or more"]
+        ]) {
+            const entry = document.createElement("span");
+            entry.className = "busy-chart-legend-item";
 
-            appendCell(row, station.station_code);
-            appendCell(row, station.line_code);
-            appendCell(row, formatHour(item.hour));
-            appendCell(
-                row,
-                formatPercentage(item.high_percentage)
+            const dot = document.createElement("span");
+            dot.className = `busy-chart-dot busy-chart-dot--${className}`;
+            dot.setAttribute("aria-hidden", "true");
+
+            entry.append(dot, document.createTextNode(label));
+            legend.appendChild(entry);
+        }
+
+        header.append(summary, legend);
+
+        const caption = document.createElement("figcaption");
+        caption.className = "busy-chart-caption";
+        caption.textContent = "Crowded observations (%)";
+
+        const scroll = document.createElement("div");
+        scroll.className = "busy-chart-scroll";
+        scroll.setAttribute("role", "region");
+        scroll.setAttribute(
+            "aria-label",
+            `${station.station_code} ${station.line_code} hourly crowd chart`
+        );
+
+        const plot = document.createElement("div");
+        plot.className = "busy-chart-plot";
+
+        const axis = document.createElement("div");
+        axis.className = "busy-chart-axis";
+        axis.setAttribute("aria-hidden", "true");
+
+        for (const percentage of [100, 75, 50, 25, 0]) {
+            const label = document.createElement("span");
+            label.textContent = `${percentage}%`;
+            axis.appendChild(label);
+        }
+
+        const bars = document.createElement("div");
+        bars.className = "busy-chart-bars";
+
+        const detail = document.createElement("p");
+        detail.className = "busy-chart-detail";
+        detail.setAttribute("role", "status");
+
+        const defaultDetail =
+            "Singapore time · Select an hour to see its recorded crowd frequency.";
+
+        detail.textContent = defaultDetail;
+
+        for (let hour = 6; hour <= 23; hour++) {
+            const hasData = observationsByHour.has(hour);
+            const percentage = observationsByHour.get(hour);
+            const isPeak = hasData && peakValue >= 10 && percentage === peakValue;
+
+            const frequency = !hasData
+                ? "missing"
+                : percentage >= 50
+                    ? "high"
+                    : percentage >= 25
+                        ? "medium"
+                        : "low";
+
+            const valueText = hasData
+                ? formatPercentage(percentage)
+                : "No data";
+
+            const column = document.createElement("button");
+            column.type = "button";
+            column.className =
+                `busy-chart-column busy-chart-column--${frequency}`;
+
+            column.setAttribute(
+                "aria-label",
+                `${formatHour(hour)}: ${
+                    hasData
+                        ? `${valueText} of recorded observations were crowded`
+                        : "No recorded data"
+                }${isPeak ? ". Peak recorded hour." : ""}`
             );
 
-            tbody.appendChild(row);
+            const marker = document.createElement("span");
+            marker.className = "busy-chart-marker";
+            marker.textContent = isPeak ? "PEAK" : "";
+            marker.setAttribute("aria-hidden", "true");
+
+            const track = document.createElement("span");
+            track.className = "busy-chart-track";
+            track.setAttribute("aria-hidden", "true");
+
+            if (hasData) {
+                const bar = document.createElement("span");
+                bar.className = "busy-chart-bar";
+                bar.style.height = `${percentage}%`;
+
+                if (percentage === 0) {
+                    bar.classList.add("busy-chart-bar--zero");
+                }
+
+                track.appendChild(bar);
+            } else {
+                const missing = document.createElement("span");
+                missing.className = "busy-chart-missing";
+                missing.textContent = "—";
+                track.appendChild(missing);
+            }
+
+            const tooltip = document.createElement("span");
+            tooltip.className = "busy-chart-tooltip";
+            tooltip.textContent = valueText;
+            tooltip.setAttribute("aria-hidden", "true");
+
+            const hourLabel = document.createElement("span");
+            hourLabel.className = "busy-chart-hour";
+            hourLabel.textContent =
+                `${hour % 12 || 12}${hour >= 12 ? "PM" : "AM"}`;
+            hourLabel.setAttribute("aria-hidden", "true");
+
+            function showDetail() {
+                detail.textContent = hasData
+                    ? `${formatHour(hour)} · ${valueText} of recorded observations were crowded.`
+                    : `${formatHour(hour)} · No recorded data.`;
+            }
+
+            column.addEventListener("mouseenter", showDetail);
+            column.addEventListener("focus", showDetail);
+            column.addEventListener("click", showDetail);
+
+            column.append(marker, track, tooltip, hourLabel);
+            bars.appendChild(column);
         }
 
-        table.append(thead, tbody);
-        wrapper.appendChild(table);
-        section.appendChild(wrapper);
+        plot.append(axis, bars);
+        scroll.appendChild(plot);
+        figure.append(header, caption, scroll, detail);
+        section.appendChild(figure);
 
     } catch (error) {
-        // Keep other interchange tables visible if this one fails.
         status.textContent =
-            "Unable to load this station-line table: " +
+            "Unable to load this station-line chart: " +
             error.message;
     }
 }

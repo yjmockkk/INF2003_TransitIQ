@@ -224,29 +224,47 @@ function renderAffectedSegment(segment, index, multiple) {
 }
 
 function renderMessage(message, index, multiple) {
-    const card = createCard();
+    const card = document.createElement("article");
+    card.className = "travel-advisory-card";
+
+    const header = document.createElement("div");
+    header.className = "travel-advisory-header";
+
+    const badge = document.createElement("span");
+    badge.className = "travel-advisory-badge";
+    badge.textContent = "Travel update";
+
+    const source = document.createElement("span");
+    source.className = "travel-advisory-source";
+    source.textContent = "Source: LTA";
+
+    header.append(badge, source);
+    card.appendChild(header);
 
     if (multiple) {
         const heading = document.createElement("h4");
+        heading.className = "travel-advisory-title";
         heading.textContent = `Advisory ${index + 1}`;
         card.appendChild(heading);
     }
 
+    const content = document.createElement("p");
+    content.className = "travel-advisory-content";
+
     if (!isObject(message)) {
-        card.textContent = valueText(message);
+        content.textContent = valueText(message);
+        card.appendChild(content);
         return card;
     }
 
     if (hasContent(message.Content)) {
-        const content = document.createElement("p");
         content.textContent = valueText(message.Content);
-        content.style.whiteSpace = "pre-wrap";
         card.appendChild(content);
     }
 
     if (hasContent(message.CreatedDate)) {
         const reported = document.createElement("p");
-
+        reported.className = "travel-advisory-published";
         reported.textContent =
             "Published: " + valueText(message.CreatedDate) +
             " (as provided by LTA)";
@@ -262,6 +280,7 @@ function renderMessage(message, index, multiple) {
 
     return card;
 }
+ 
 
 function buildAlertContent(data) {
     const fragment = document.createDocumentFragment();
@@ -350,7 +369,7 @@ async function refreshTrainAlerts() {
                 "No train-service information has been collected yet.";
 
             detailsElement.replaceChildren();
-            checkedElement.textContent = "";
+            if (checkedElement) checkedElement.textContent = "";
             hasLoaded = false;
             return;
         }
@@ -368,7 +387,7 @@ async function refreshTrainAlerts() {
 
         detailsElement.replaceChildren(content);
 
-        checkedElement.textContent =
+        if (checkedElement) checkedElement.textContent =
             "Last checked: " +
             formatCheckedTime(data.last_checked) +
             " (Singapore time)";
