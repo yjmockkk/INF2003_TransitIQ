@@ -11,6 +11,28 @@ const choiceContainer = document.getElementById(
 );
 const stationChoice = document.getElementById("station-choice");
 
+const fallbackStations = [
+    ["CC18", "Bukit Brown", "武吉布朗", "CCL", "Circle Line"],
+    ["CC30", "Keppel", "岌巴", "CCL", "Circle Line"],
+    ["CC31", "Cantonment", "广东民", "CCL", "Circle Line"],
+    ["CC32", "Prince Edward Road", "爱德华太子路", "CCL", "Circle Line"],
+    ["CC33", "Marina Bay", "滨海湾", "CCL", "Circle Line"],
+    ["CC34", "Bayfront", "海湾舫", "CCL", "Circle Line"],
+    ["DT36", "Xilin", "锡林", "DTL", "Downtown Line"],
+    ["DT37", "Sungei Bedok", "双溪勿洛", "DTL", "Downtown Line"],
+    ["TE10", "Mount Pleasant", "快乐山", "TEL", "Thomson-East Coast Line"],
+    ["TE21", "Marina South", "滨海南", "TEL", "Thomson-East Coast Line"],
+    ["TE22A", "Founders’ Memorial", "建国先贤纪念园", "TEL", "Thomson-East Coast Line"],
+    ["TE30", "Bedok South", "勿洛南", "TEL", "Thomson-East Coast Line"],
+    ["TE31", "Sungei Bedok", "双溪勿洛", "TEL", "Thomson-East Coast Line"]
+].map(([code, english, chinese, lineCode, lineName]) => ({
+    station_code: code,
+    station_name_english: english,
+    station_name_chinese: chinese,
+    line_code: lineCode,
+    line_name_english: lineName
+}));
+
 let stationOptions = [];
 let loading = false;
 
@@ -73,6 +95,25 @@ function resetResults() {
 
 // Used for name searches: find all interchange codes.
 async function resolveStation(station) {
+    const fallback = fallbackStations.find(item =>
+        item.station_code === station.station_code.toUpperCase()
+    );
+
+    if (fallback) {
+        return {
+            name: formatStationName(fallback),
+            lines: fallbackStations
+                .filter(item =>
+                    item.station_name_english ===
+                    fallback.station_name_english
+                )
+                .map(item => ({
+                    station_code: item.station_code,
+                    line_code: item.line_code,
+                    line_name_english: item.line_name_english
+                }))
+        };
+    }
     const body = await fetchJson(
         "/api/train/stations/" +
         encodeURIComponent(station.station_code)
@@ -119,10 +160,29 @@ async function resolveStation(station) {
 
 async function populateLineTable(station, section, status) {
     try {
-        const params = new URLSearchParams({
-            station_code: station.station_code,
-            line_code: station.line_code
-        });
+    const stationAliases = {
+        CE1: { station_code: "CC34", line_code: "CCL" },
+        CE2: { station_code: "CC33", line_code: "CCL" }
+    };
+
+    const lineAliases = {
+        CE: "CEL",
+        CG: "CGL",
+        STL: "SLRT",
+        PTL: "PLRT"
+    };
+
+    const stationCode = station.station_code.trim().toUpperCase();
+    const mappedStation = stationAliases[stationCode];
+
+    const params = new URLSearchParams({
+        station_code: mappedStation?.station_code || stationCode,
+        line_code:
+            mappedStation?.line_code ||
+            lineAliases[station.line_code] ||
+            station.line_code
+    });
+
 
         const body = await fetchJson(
             "/api/crowd/busy-hours?" + params.toString()
@@ -131,6 +191,7 @@ async function populateLineTable(station, section, status) {
         if (!Array.isArray(body.data)) {
             throw new Error("Unexpected crowd information received.");
         }
+
 
         const observationsByHour = new Map();
 
@@ -404,6 +465,15 @@ async function displayStation(station, codeOnly = false) {
     );
 
     searchMessage.textContent = "";
+
+    if (tableContainer.firstElementChild) {
+        tableContainer.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                ? "instant"
+                : "smooth",
+            block: "start"
+        });
+    }
 }
 
 searchForm.addEventListener("submit", async event => {
@@ -441,6 +511,28 @@ searchForm.addEventListener("submit", async event => {
         }
 
         const normalized = query.toLowerCase();
+
+        const fallbackMatches = fallbackStations.filter(station =>
+            [
+                station.station_code,
+                station.station_name_english,
+                station.station_name_chinese
+            ].some(value =>
+                value.toLowerCase().includes(normalized)
+            )
+        );
+
+        const existingCodes = new Set(
+            body.data.map(station =>
+                station.station_code.toUpperCase()
+            )
+        );
+
+        for (const station of fallbackMatches) {
+            if (!existingCodes.has(station.station_code)) {
+                body.data.push(station);
+            }
+        }
 
         // Exact code: show only that code's table.
         const exactCodeMatch = body.data.find(station =>
