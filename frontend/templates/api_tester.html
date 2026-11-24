@@ -1,516 +1,976 @@
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>TransitIQ API Tester</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main_style.css') }}" />  </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <body>
+    <title>TransitIQ API Tester</title>
+
+    <!-- Keep your existing API tester stylesheet path here. -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/main_style.css') }}"
+    />
+  </head>
+
+  <body class="api-tester">
     <header class="page-header">
-    <h1>TransitIQ API Tester</h1>
+      <h1>TransitIQ API Tester - Final Edition!</h1>
     </header>
 
-    <div class="tabs">
-      <button id="train-tab" class="active" onclick="showTab('train')">
-        Train
-      </button>
-      <button id="bus-tab" onclick="showTab('bus')">Bus</button>
-    </div>
+    <main class="tester-shell">
+      <!-- TRANSPORT TABS AND UTILITY ACTIONS -->
+      <div class="tester-toolbar">
+        <nav class="tabs" aria-label="Transport type">
+          <button
+            id="train-tab"
+            class="active"
+            type="button"
+            aria-pressed="true"
+            onclick="showTab('train')"
+          >
+            Train
+          </button>
 
-    <div class="row">
-      <button onclick="call('/api/health')">Health check</button>
-    </div>
+          <button
+            id="bus-tab"
+            type="button"
+            aria-pressed="false"
+            onclick="showTab('bus')"
+          >
+            Bus
+          </button>
+        </nav>
 
-    <div>
-      <button type="button" onclick="window.location.href = '/crowd-dashboard'">
-        Station Crowd
-      </button>
-    </div>
+        <div class="toolbar-actions row">
+          <button type="button" onclick="call('/api/health')">
+            Health check
+          </button>
 
-    <!-- TRAIN CONTROLS -->
-    <section id="train-panel">
-      <h3>Train API</h3>
-
-      <div class="row">
-        <button onclick="call('/api/train/lines')">GET lines</button>
+          <button
+            type="button"
+            onclick="window.location.href = '/crowd-dashboard'"
+          >
+            Station Crowd
+          </button>
+        </div>
       </div>
 
-      <div class="row">
-        Search <input id="q" placeholder="e.g. bishan or 碧山" /> Line
-        <input id="line" placeholder="e.g. NSL" size="6" />
-        <button onclick="searchStations()">GET stations</button>
-      </div>
+      <!-- TRAIN CONTROLS -->
+      <section id="train-panel" aria-labelledby="train-heading">
+        <div class="section-intro">
+          <h2 id="train-heading">Train API</h2>
+          <p>
+            Find stations, explore the network, and test station records.
+          </p>
+        </div>
 
-      <div class="row">
-        Station code <input id="scode" value="NS17" size="8" />
-        <button onclick="call('/api/train/stations/' + v('scode'))">
-          GET station
-        </button>
+        <div class="tester-grid">
+          <!-- SEARCH STATIONS -->
+          <section class="tester-card">
+            <h3>Search stations</h3>
 
-        Line code <input id="lcode" value="NSL" size="8" />
-        <button onclick="call('/api/train/lines/' + v('lcode') + '/stations')">
-          GET line stations
-        </button>
-      </div>
+            <p class="card-description">
+              Search by station name and optionally filter by line.
+            </p>
 
-      <h3>Create / update / delete a station</h3>
+            <div class="field-grid crud-fields">
+              <label for="q">
+                Station name
+                <input id="q" placeholder="e.g. Bishan or 碧山" />
+              </label>
 
-      <div class="row">
-        Code <input id="c_code" value="TEST1" size="8" /> English
-        <input id="c_en" value="Test Station" /> Chinese
-        <input id="c_zh" value="测试站" size="8" /> Line
-        <input id="c_line" value="NSL" size="6" />
-      </div>
+              <label for="line">
+                Line code (optional)
+                <input id="line" placeholder="e.g. NSL" />
+              </label>
+            </div>
 
-      <div class="row">
-        <button onclick="send('POST', '/api/train/stations', stationBody())">
-          POST create
-        </button>
-        <button
-          onclick="
-            send('PUT', '/api/train/stations/' + v('c_code'), stationBody())
-          "
-        >
-          PUT update
-        </button>
-        <button onclick="send('DELETE', '/api/train/stations/' + v('c_code'))">
-          DELETE
-        </button>
-      </div>
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="searchStations()"
+              >
+                Search stations
+              </button>
+            </div>
+          </section>
+
+          <!-- SINGLE STATION LOOKUP -->
+          <section class="tester-card">
+            <h3>Find a station</h3>
+
+            <p class="card-description">
+              Retrieve a station using its station code.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="scode">
+                Station code
+                <input id="scode" value="NS17" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="call('/api/train/stations/' + v('scode'))"
+              >
+                Get station
+              </button>
+            </div>
+          </section>
+
+          <!-- LINE LOOKUP -->
+          <section class="tester-card">
+            <h3>Explore a line</h3>
+
+            <p class="card-description">
+              Browse available lines or view the stations on one line.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="lcode">
+                Line code
+                <input id="lcode" value="NSL" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="
+                  call('/api/train/lines/' + v('lcode') + '/stations')
+                "
+              >
+                Get line stations
+              </button>
+
+              <button
+                type="button"
+                onclick="call('/api/train/lines')"
+              >
+                View all lines
+              </button>
+            </div>
+          </section>
+
+          <!-- STATION NEIGHBOURS -->
+          <section class="tester-card">
+            <h3>Station neighbours</h3>
+
+            <p class="card-description">
+              Find stations connected to the selected station.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="n_code">
+                Station code
+                <input id="n_code" value="NS17" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="
+                  call(
+                    '/api/train/analytics/stations/' +
+                    v('n_code') +
+                    '/neighbours'
+                  )
+                "
+              >
+                Get neighbours
+              </button>
+            </div>
+          </section>
+
+          <!-- ROUTE PLANNER -->
+          <section class="tester-card card-wide">
+            <h3>Route planner</h3>
+
+            <p class="card-description">
+              Compare routes by number of transfers or stops.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="r_from">
+                From station code
+                <input id="r_from" value="NS1" />
+              </label>
+
+              <label for="r_to">
+                To station code
+                <input id="r_to" value="NE17" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="
+                  showRoute(
+                    '/api/train/analytics/route?from=' +
+                    v('r_from') +
+                    '&to=' +
+                    v('r_to')
+                  )
+                "
+              >
+                Fewest transfers
+              </button>
+
+              <button
+                type="button"
+                onclick="
+                  showRoute(
+                    '/api/train/analytics/shortest-route?from=' +
+                    v('r_from') +
+                    '&to=' +
+                    v('r_to')
+                  )
+                "
+              >
+                Fewest stops
+              </button>
+            </div>
+
+            <div id="route-visual"></div>
+          </section>
+
+          <!-- NETWORK ANALYTICS -->
+          <section class="tester-card card-wide">
+            <h3>Network analytics</h3>
+
+            <p class="card-description">
+              Explore line sizes, interchange stations, and line connections.
+            </p>
+
+            <div class="card-actions row">
+              <button
+                type="button"
+                onclick="call('/api/train/analytics/line-sizes')"
+              >
+                Line sizes
+              </button>
+
+              <button
+                type="button"
+                onclick="call('/api/train/analytics/interchanges')"
+              >
+                Interchanges
+              </button>
+
+              <button
+                type="button"
+                onclick="call('/api/train/analytics/line-connections')"
+              >
+                Line connections
+              </button>
+            </div>
+          </section>
+
+          <!-- STATION MANAGEMENT -->
+          <details class="tester-card card-wide station-management">
+            <summary>Manage station records</summary>
+
+            <p class="card-description">
+              Create a test station, update its details, or delete it.
+              These actions change the connected database.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="c_code">
+                Station code
+                <input id="c_code" value="TEST1" />
+              </label>
+
+              <label for="c_en">
+                English name
+                <input id="c_en" value="Test Station" />
+              </label>
+
+              <label for="c_zh">
+                Chinese name
+                <input id="c_zh" value="测试站" />
+              </label>
+
+              <label for="c_line">
+                Line code
+                <input id="c_line" value="NSL" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="
+                  send('POST', '/api/train/stations', stationBody())
+                "
+              >
+                Create station
+              </button>
+
+              <button
+                type="button"
+                onclick="
+                  send(
+                    'PUT',
+                    '/api/train/stations/' + v('c_code'),
+                    stationBody()
+                  )
+                "
+              >
+                Update station
+              </button>
+
+              <button
+                class="btn-danger"
+                type="button"
+                onclick="
+                  send('DELETE', '/api/train/stations/' + v('c_code'))
+                "
+              >
+                Delete station
+              </button>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- BUS CONTROLS -->
+      <section
+        id="bus-panel"
+        aria-labelledby="bus-heading"
+        hidden
+      >
+        <div class="section-intro">
+          <h2 id="bus-heading">Bus API</h2>
+          <p>
+            Check arrivals, browse bus data, and manage test records.
+          </p>
+        </div>
+
+        <div class="tester-grid">
+          <!-- BUS ARRIVALS -->
+          <section class="tester-card card-wide">
+            <h3>Bus arrivals</h3>
+
+            <p class="card-description">
+              View the latest available arrival snapshot for a bus stop.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="arr_stop">
+                Stop code
+                <input id="arr_stop" placeholder="e.g. 46009" />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="showArrivals(raw('arr_stop'))"
+              >
+                Get arrivals
+              </button>
+            </div>
+
+            <div id="arrival-visual"></div>
+          </section>
+
+          <!-- SEARCH BUS STOPS -->
+          <section class="tester-card">
+            <h3>Search bus stops</h3>
+
+            <p class="card-description">
+              Search using a stop code, road name, or stop name.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="bus_q">
+                Search
+                <input
+                  id="bus_q"
+                  placeholder="Stop code, road or stop name"
+                />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="call('/api/bus/stops?q=' + v('bus_q'))"
+              >
+                Search bus stops
+              </button>
+            </div>
+          </section>
+
+          <!-- BUS SERVICES -->
+          <section class="tester-card">
+            <h3>Bus Services</h3>
+
+            <p class="card-description">
+              Browse the available bus services.
+            </p>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="call('/api/bus/services')"
+              >
+                Get bus services
+              </button>
+            </div>
+          </section>
+
+          <!-- BUS ROUTE LOOKUP -->
+          <section class="tester-card card-wide">
+            <h3>Find a bus route</h3>
+
+            <p class="card-description">
+              Choose a service number and direction to view its route.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="bus_service">
+                Service number
+                <input id="bus_service" placeholder="e.g. 27" />
+              </label>
+
+              <label for="bus_direction">
+                Direction
+                <select id="bus_direction">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="getBusRoute()"
+              >
+                Get bus route
+              </button>
+            </div>
+          </section>
+
+          <!-- BUS ANALYSIS -->
+          <section class="tester-card card-wide">
+            <h3>Direct connections</h3>
+
+            <p class="card-description">
+              Find direct bus connections between two stops.
+            </p>
+
+            <div class="field-grid crud-fields">
+              <label for="origin_code">
+                Origin stop code
+                <input id="origin_code" placeholder="e.g. 01012" />
+              </label>
+
+              <label for="destination_code">
+                Destination stop code
+                <input
+                  id="destination_code"
+                  placeholder="e.g. 01023"
+                />
+              </label>
+            </div>
+
+            <div class="card-actions row">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="getDirectConnections()"
+              >
+                Get direct connections
+              </button>
+            </div>
+          </section>
+
+          <section class="tester-card card-wide">
+            <h3>Bus network analysis</h3>
+
+            <p class="card-description">
+              Explore stop connectivity and compare operators.
+            </p>
+
+            <div class="card-actions row">
+              <button
+                type="button"
+                onclick="call('/api/bus/analysis/stop-connectivity')"
+              >
+                Stop connectivity
+              </button>
+
+              <button
+                type="button"
+                onclick="call('/api/bus/analysis/operator-comparison')"
+              >
+                Operator comparison
+              </button>
+            </div>
+          </section>
+
+          <!-- BUS RECORD MANAGEMENT -->
+          <details class="tester-card card-wide bus-management">
+            <summary>Manage bus records</summary>
+
+            <p class="card-description">
+              To update a record, enter its existing primary key and
+              change the other fields. Keep all primary key fields
+              unchanged. Create, update, and delete actions change the
+              connected database.
+            </p>
+
+            <!-- BUS STOP -->
+            <fieldset>
+              <legend>Bus Stop</legend>
+
+              <p><strong>Primary key:</strong> Stop code</p>
+
+              <div class="field-grid crud-fields">
+                <label for="stop_bus_stop_code">
+                  Stop code
+                  <input
+                    id="stop_bus_stop_code"
+                    placeholder="e.g. TEST01"
+                  />
+                </label>
+
+                <label for="stop_road_name">
+                  Road name
+                  <input
+                    id="stop_road_name"
+                    placeholder="e.g. Victoria St"
+                  />
+                </label>
+
+                <label for="stop_description">
+                  Description
+                  <input
+                    id="stop_description"
+                    placeholder="e.g. Bugis Stn Exit B"
+                  />
+                </label>
+
+                <label for="stop_latitude">
+                  Latitude
+                  <input
+                    id="stop_latitude"
+                    placeholder="e.g. 1.300757"
+                  />
+                </label>
+
+                <label for="stop_longitude">
+                  Longitude
+                  <input
+                    id="stop_longitude"
+                    placeholder="e.g. 103.856110"
+                  />
+                </label>
+              </div>
+
+              <div class="card-actions row">
+                <button
+                  class="btn-primary"
+                  type="button"
+                  onclick="busCrud('stop', 'POST')"
+                >
+                  Create
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('stop', 'GET')"
+                >
+                  Read
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('stop', 'PUT')"
+                >
+                  Update
+                </button>
+
+                <button
+                  class="btn-danger"
+                  type="button"
+                  onclick="busCrud('stop', 'DELETE')"
+                >
+                  Delete
+                </button>
+
+                <button
+                  type="button"
+                  onclick="listCreated('stop')"
+                >
+                  View created records
+                </button>
+
+                <button
+                  type="button"
+                  onclick="call('/api/bus/stops')"
+                >
+                  View all stops
+                </button>
+              </div>
+            </fieldset>
+
+            <!-- BUS SERVICE -->
+            <fieldset>
+              <legend>Bus service</legend>
+
+              <p>
+                <strong>Primary key:</strong>
+                Service number + Direction
+              </p>
+
+              <div class="field-grid crud-fields">
+                <label for="service_service_no">
+                  Service number
+                  <input
+                    id="service_service_no"
+                    placeholder="e.g. SER39B"
+                  />
+                </label>
+
+                <label for="service_direction">
+                  Direction
+                  <input
+                    id="service_direction"
+                    placeholder="1 or 2"
+                  />
+                </label>
+
+                <label for="service_operator">
+                  Operator
+                  <input
+                    id="service_operator"
+                    placeholder="e.g. SMRT"
+                  />
+                </label>
+
+                <label for="service_category">
+                  Category
+                  <input
+                    id="service_category"
+                    placeholder="e.g. TRUNK"
+                  />
+                </label>
+
+                <label for="service_origin_code">
+                  Origin stop code
+                  <input
+                    id="service_origin_code"
+                    placeholder="e.g. 22009"
+                  />
+                </label>
+
+                <label for="service_destination_code">
+                  Destination stop code
+                  <input
+                    id="service_destination_code"
+                    placeholder="e.g. 25009"
+                  />
+                </label>
+
+                <label for="service_am_peak_freq">
+                  AM peak frequency
+                  <input
+                    id="service_am_peak_freq"
+                    placeholder="e.g. 07-08 (optional)"
+                  />
+                </label>
+
+                <label for="service_am_offpeak_freq">
+                  AM off-peak frequency
+                  <input
+                    id="service_am_offpeak_freq"
+                    placeholder="e.g. 09-19 (optional)"
+                  />
+                </label>
+
+                <label for="service_pm_peak_freq">
+                  PM peak frequency
+                  <input
+                    id="service_pm_peak_freq"
+                    placeholder="e.g. 10-15 (optional)"
+                  />
+                </label>
+
+                <label for="service_pm_offpeak_freq">
+                  PM off-peak frequency
+                  <input
+                    id="service_pm_offpeak_freq"
+                    placeholder="e.g. 09-19 (optional)"
+                  />
+                </label>
+              </div>
+
+              <div class="card-actions row">
+                <button
+                  class="btn-primary"
+                  type="button"
+                  onclick="busCrud('service', 'POST')"
+                >
+                  Create
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('service', 'GET')"
+                >
+                  Read
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('service', 'PUT')"
+                >
+                  Update
+                </button>
+
+                <button
+                  class="btn-danger"
+                  type="button"
+                  onclick="busCrud('service', 'DELETE')"
+                >
+                  Delete
+                </button>
+
+                <button
+                  type="button"
+                  onclick="listCreated('service')"
+                >
+                  View created records
+                </button>
+
+                <button
+                  type="button"
+                  onclick="call('/api/bus/services')"
+                >
+                  View all services
+                </button>
+              </div>
+            </fieldset>
+
+            <!-- BUS ROUTE -->
+            <fieldset>
+              <legend>Bus Route</legend>
+
+              <p>
+                <strong>Primary key:</strong>
+                Service number + Direction + Stop sequence
+              </p>
+
+              <div class="field-grid crud-fields">
+                <label for="route_service_no">
+                  Service number
+                  <input
+                    id="route_service_no"
+                    placeholder="e.g. SER39B"
+                  />
+                </label>
+
+                <label for="route_direction">
+                  Direction
+                  <input
+                    id="route_direction"
+                    placeholder="1 or 2"
+                  />
+                </label>
+
+                <label for="route_stop_seq">
+                  Stop sequence
+                  <input
+                    id="route_stop_seq"
+                    placeholder="e.g. 7"
+                  />
+                </label>
+
+                <label for="route_bus_stop_code">
+                  Stop code
+                  <input
+                    id="route_bus_stop_code"
+                    placeholder="e.g. 85089"
+                  />
+                </label>
+
+                <label for="route_distance">
+                  Distance
+                  <input
+                    id="route_distance"
+                    placeholder="e.g. 3.5"
+                  />
+                </label>
+
+                <label for="route_wd_first_bus">
+                  Weekday first bus
+                  <input
+                    id="route_wd_first_bus"
+                    placeholder="HHMM, e.g. 0510 (optional)"
+                  />
+                </label>
+
+                <label for="route_wd_last_bus">
+                  Weekday last bus
+                  <input
+                    id="route_wd_last_bus"
+                    placeholder="HHMM, e.g. 2309 (optional)"
+                  />
+                </label>
+
+                <label for="route_sat_first_bus">
+                  Saturday first bus
+                  <input
+                    id="route_sat_first_bus"
+                    placeholder="HHMM, e.g. 0509 (optional)"
+                  />
+                </label>
+
+                <label for="route_sat_last_bus">
+                  Saturday last bus
+                  <input
+                    id="route_sat_last_bus"
+                    placeholder="HHMM, e.g. 2309 (optional)"
+                  />
+                </label>
+
+                <label for="route_sun_first_bus">
+                  Sunday first bus
+                  <input
+                    id="route_sun_first_bus"
+                    placeholder="HHMM, e.g. 0509 (optional)"
+                  />
+                </label>
+
+                <label for="route_sun_last_bus">
+                  Sunday last bus
+                  <input
+                    id="route_sun_last_bus"
+                    placeholder="HHMM, e.g. 2309 (optional)"
+                  />
+                </label>
+              </div>
+
+              <div class="card-actions row">
+                <button
+                  class="btn-primary"
+                  type="button"
+                  onclick="busCrud('route', 'POST')"
+                >
+                  Create
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('route', 'GET')"
+                >
+                  Read
+                </button>
+
+                <button
+                  type="button"
+                  onclick="busCrud('route', 'PUT')"
+                >
+                  Update
+                </button>
+
+                <button
+                  class="btn-danger"
+                  type="button"
+                  onclick="busCrud('route', 'DELETE')"
+                >
+                  Delete
+                </button>
+
+                <button
+                  type="button"
+                  onclick="listCreated('route')"
+                >
+                  View created records
+                </button>
+
+                <button
+                  type="button"
+                  onclick="call('/api/bus/routes')"
+                >
+                  View all routes
+                </button>
+              </div>
+            </fieldset>
+          </details>
+        </div>
+      </section>
+
       <!-- SHARED RESULTS -->
-      <h3>Analytics</h3>
-      <div class="row">
-        <button onclick="call('/api/train/analytics/line-sizes')">
-          Line sizes
-        </button>
-        <button onclick="call('/api/train/analytics/interchanges')">
-          Interchanges
-        </button>
-        <button onclick="call('/api/train/analytics/line-connections')">
-          Line connections
-        </button>
-      </div>
-      <div class="row">
-        Station <input id="n_code" value="NS17" size="8" />
-        <button
-          onclick="
-            call('/api/train/analytics/stations/' + v('n_code') + '/neighbours')
-          "
-        >
-          Neighbours
-        </button>
-        Route from <input id="r_from" value="NS1" size="8" /> to
-        <input id="r_to" value="NE17" size="8" />
-        <button
-          onclick="
-            showRoute(
-              '/api/train/analytics/route?from=' +
-                v('r_from') +
-                '&to=' +
-                v('r_to'),
-            )
-          "
-        >
-          Fewest transfers
-        </button>
-        <button
-          onclick="
-            showRoute(
-              '/api/train/analytics/shortest-route?from=' +
-                v('r_from') +
-                '&to=' +
-                v('r_to'),
-            )
-          "
-        >
-          Fewest stops
-        </button>
-      </div>
-      <div id="route-visual"></div>
-    </section>
-    
-    <!-- BUS CONTROLS -->
-    <section id="bus-panel" hidden>
-
-      <!-- BUS ARRIVALS -->
-      <h3>Bus Arrivals</h3>
-
-      <div class="row">
-        Stop code
-        <input id="arr_stop" placeholder="e.g. 46009" size="10" />
-
-        <button type="button" onclick="showArrivals(v('arr_stop'))">
-          GET arrivals
-        </button>
-      </div>
-
-      <div id="arrival-visual"></div>
-
-      
-      <h3>Browse Bus Data</h3>
-
-      <div class="row">
-        <button type="button" onclick="call('/api/bus/services')">
-          GET bus services
-        </button>
-      </div>
-
-      <div class="row">
-        Search
-        <input id="bus_q" placeholder="Stop code, road or stop name" />
-
-        <button
-          type="button"
-          onclick="call('/api/bus/stops?q=' + v('bus_q'))"
-        >
-          GET bus stops
-        </button>
-      </div>
-
-      <div class="row">
-        Service number
-        <input id="bus_service" placeholder="e.g. 27" size="8" />
-
-        Direction
-        <select id="bus_direction">
-          <option value="1">1</option>
-          <option value="2">2</option>
-        </select>
-
-        <button onclick="getBusRoute()">GET bus route</button>
-      </div>
-
-      <h3>Manage Bus Records</h3>
-
-      <p>To update a record, enter its existing primary key and change
-        the other fields. Keep all primary key fields unchanged.</p>
-
-      <!-- BUS STOP -->
-      <fieldset>
-        <legend>BusStop</legend>
-
-        <p><strong>Primary key:</strong> Stop code</p>
-
-        <div class="crud-fields">
-          <label for="stop_bus_stop_code">
-            Stop code
-            <input id="stop_bus_stop_code" placeholder="e.g. TEST01" />
-          </label>
-
-          <label for="stop_road_name">
-            Road name
-            <input id="stop_road_name" placeholder="e.g. Victoria St" />
-          </label>
-
-          <label for="stop_description">
-            Description
-            <input
-              id="stop_description"
-              placeholder="e.g. Bugis Stn Exit B"
-            />
-          </label>
-
-          <label for="stop_latitude">
-            Latitude
-            <input id="stop_latitude" placeholder="e.g. 1.300757" />
-          </label>
-
-          <label for="stop_longitude">
-            Longitude
-            <input id="stop_longitude" placeholder="e.g. 103.856110" />
-          </label>
+      <section
+        class="response-panel"
+        aria-labelledby="response-heading"
+      >
+        <div class="response-heading">
+          <h2 id="response-heading">API response</h2>
+          <p>
+            Request status, returned records, and raw response data.
+          </p>
         </div>
 
-        <div class="row">
-          <button type="button" onclick="busCrud('stop', 'POST')">
-            Create
-          </button>
+        <div id="status" role="status" aria-live="polite"></div>
 
-          <button type="button" onclick="busCrud('stop', 'GET')">
-            Read
-          </button>
+        <div id="table" class="response-table"></div>
 
-          <button type="button" onclick="busCrud('stop', 'PUT')">
-            Update
-          </button>
-
-          <button type="button" onclick="busCrud('stop', 'DELETE')">
-            Delete
-          </button>
-
-          <button type="button" onclick="listCreated('stop')">
-            View created records
-          </button>
-
-          <button type="button" onclick="call('/api/bus/stops')">
-            View all stops
-          </button>
-        </div>
-      </fieldset>
-
-      <!-- BUS SERVICE -->
-      <fieldset>
-        <legend>BusService</legend>
-
-        <p><strong>Primary key:</strong> Service number + Direction</p>
-
-        <div class="crud-fields">
-          <label for="service_service_no">
-            Service number
-            <input id="service_service_no" placeholder="e.g. SER39B" />
-          </label>
-
-          <label for="service_direction">
-            Direction
-            <input id="service_direction" placeholder="1 or 2" />
-          </label>
-
-          <label for="service_operator">
-            Operator
-            <input id="service_operator" placeholder="e.g. SMRT" />
-          </label>
-
-          <label for="service_category">
-            Category
-            <input id="service_category" placeholder="e.g. TRUNK" />
-          </label>
-
-          <label for="service_origin_code">
-            Origin stop code
-            <input id="service_origin_code" placeholder="e.g. 22009" />
-          </label>
-
-          <label for="service_destination_code">
-            Destination stop code
-            <input
-              id="service_destination_code"
-              placeholder="e.g. 25009"
-            />
-          </label>
-
-          <label for="service_am_peak_freq">
-            AM peak frequency
-            <input
-              id="service_am_peak_freq"
-              placeholder="e.g. 07-08 (optional)"
-            />
-          </label>
-
-          <label for="service_am_offpeak_freq">
-            AM off-peak frequency
-            <input
-              id="service_am_offpeak_freq"
-              placeholder="e.g. 09-19 (optional)"
-            />
-          </label>
-
-          <label for="service_pm_peak_freq">
-            PM peak frequency
-            <input
-              id="service_pm_peak_freq"
-              placeholder="e.g. 10-15 (optional)"
-            />
-          </label>
-
-          <label for="service_pm_offpeak_freq">
-            PM off-peak frequency
-            <input
-              id="service_pm_offpeak_freq"
-              placeholder="e.g. 09-19 (optional)"
-            />
-          </label>
-        </div>
-
-        <div class="row">
-          <button type="button" onclick="busCrud('service', 'POST')">
-            Create
-          </button>
-
-          <button type="button" onclick="busCrud('service', 'GET')">
-            Read
-          </button>
-
-          <button type="button" onclick="busCrud('service', 'PUT')">
-            Update
-          </button>
-
-          <button type="button" onclick="busCrud('service', 'DELETE')">
-            Delete
-          </button>
-
-          <button type="button" onclick="listCreated('service')">
-            View created records
-          </button>
-
-          <button type="button" onclick="call('/api/bus/services')">
-            View all services
-          </button>
-        </div>
-      </fieldset>
-
-      <!-- BUS ROUTE -->
-      <fieldset>
-        <legend>BusRoute</legend>
-
-        <p><strong>Primary key:</strong> Service number + Direction + Stop sequence</p>
-
-        <div class="crud-fields">
-          <label for="route_service_no">
-            Service number
-            <input id="route_service_no" placeholder="e.g. SER39B" />
-          </label>
-
-          <label for="route_direction">
-            Direction
-            <input id="route_direction" placeholder="1 or 2" />
-          </label>
-
-          <label for="route_stop_seq">
-            Stop sequence
-            <input id="route_stop_seq" placeholder="e.g. 7" />
-          </label>
-
-          <label for="route_bus_stop_code">
-            Stop code
-            <input id="route_bus_stop_code" placeholder="e.g. 85089" />
-          </label>
-
-          <label for="route_distance">
-            Distance
-            <input id="route_distance" placeholder="e.g. 3.5" />
-          </label>
-
-          <label for="route_wd_first_bus">
-            Weekday first bus
-            <input
-              id="route_wd_first_bus"
-              placeholder="HHMM, e.g. 0510 (optional)"
-            />
-          </label>
-
-          <label for="route_wd_last_bus">
-            Weekday last bus
-            <input
-              id="route_wd_last_bus"
-              placeholder="HHMM, e.g. 2309 (optional)"
-            />
-          </label>
-
-          <label for="route_sat_first_bus">
-            Saturday first bus
-            <input
-              id="route_sat_first_bus"
-              placeholder="HHMM, e.g. 0509 (optional)"
-            />
-          </label>
-
-          <label for="route_sat_last_bus">
-            Saturday last bus
-            <input
-              id="route_sat_last_bus"
-              placeholder="HHMM, e.g. 2309 (optional)"
-            />
-          </label>
-
-          <label for="route_sun_first_bus">
-            Sunday first bus
-            <input
-              id="route_sun_first_bus"
-              placeholder="HHMM, e.g. 0509 (optional)"
-            />
-          </label>
-
-          <label for="route_sun_last_bus">
-            Sunday last bus
-            <input
-              id="route_sun_last_bus"
-              placeholder="HHMM, e.g. 2309 (optional)"
-            />
-          </label>
-        </div>
-
-        <div class="row">
-          <button type="button" onclick="busCrud('route', 'POST')">
-            Create
-          </button>
-
-          <button type="button" onclick="busCrud('route', 'GET')">
-            Read
-          </button>
-
-          <button type="button" onclick="busCrud('route', 'PUT')">
-            Update
-          </button>
-
-          <button type="button" onclick="busCrud('route', 'DELETE')">
-            Delete
-          </button>
-
-          <button type="button" onclick="listCreated('route')">
-            View created records
-          </button>
-
-          <button type="button" onclick="call('/api/bus/routes')">
-            View all routes
-          </button>
-        </div>
-      </fieldset>
-
-      <!-- BUS ANALYSIS -->
-      <h3>Bus Analysis</h3>
-
-      <div class="row">
-        Origin stop code
-        <input id="origin_code" placeholder="e.g. 01012" />
-
-        Destination stop code
-        <input id="destination_code" placeholder="e.g. 01023" />
-
-        <button type="button" onclick="getDirectConnections()">
-          GET direct connections
-        </button>
-      </div>
-
-      <div class="row">
-        <button
-          type="button"
-          onclick="call('/api/bus/analysis/stop-connectivity')"
-        >
-          GET stop connectivity
-        </button>
-
-        <button
-          type="button"
-          onclick="call('/api/bus/analysis/operator-comparison')"
-        >
-          GET operator comparison
-        </button>
-      </div>
-    </section>
-
-    <div id="status" role="status"></div>
-    <div id="table"></div>
-    <pre id="out">Click a button to call the API.</pre>
-    
+        <details class="raw-response" open>
+          <summary>Raw response</summary>
+          <pre id="out">Click a button to call the API.</pre>
+        </details>
+      </section>
+    </main>
 
     <script>
-      // Ignore responses from requests made before switching tabs
-      // or starting a newer request.
+      // Ignore shared results from older requests or previous tabs.
       let requestVersion = 0;
+
+      // Track visual requests separately.
+      let arrivalRequestVersion = 0;
+      let routeRequestVersion = 0;
 
       function showTab(tab) {
         requestVersion++;
+        arrivalRequestVersion++;
+        routeRequestVersion++;
 
         for (const name of ["train", "bus"]) {
-          document.getElementById(name + "-panel").hidden = name !== tab;
-          document
-            .getElementById(name + "-tab")
-            .classList.toggle("active", name === tab);
+          const selected = name === tab;
+
+          document.getElementById(name + "-panel").hidden = !selected;
+
+          const button = document.getElementById(name + "-tab");
+          button.classList.toggle("active", selected);
+          button.setAttribute("aria-pressed", String(selected));
         }
 
         document.getElementById("status").textContent = "";
         document.getElementById("table").replaceChildren();
+        document.getElementById("route-visual").replaceChildren();
+        document.getElementById("arrival-visual").replaceChildren();
+
         document.getElementById("out").textContent =
           "Click a button to call the API.";
       }
@@ -524,7 +984,12 @@
       }
 
       function searchStations() {
-        call("/api/train/stations?q=" + v("q") + "&line=" + v("line"));
+        call(
+          "/api/train/stations?q=" +
+          v("q") +
+          "&line=" +
+          v("line")
+        );
       }
 
       function stationBody() {
@@ -532,16 +997,16 @@
           station_code: raw("c_code"),
           station_name_english: raw("c_en"),
           station_name_chinese: raw("c_zh"),
-          line_code: raw("c_line"),
+          line_code: raw("c_line")
         };
       }
 
       function getBusRoute() {
         call(
           "/api/bus/services/" +
-            v("bus_service") +
-            "/route?direction=" +
-            v("bus_direction"),
+          v("bus_service") +
+          "/route?direction=" +
+          v("bus_direction")
         );
       }
 
@@ -571,10 +1036,13 @@
           if (version !== requestVersion) return;
 
           const ms = (performance.now() - started).toFixed(0);
+
           document.getElementById("status").textContent =
-            method + " " + url + " → " + res.status + " (" + ms + " ms)";
+            method + " " + url + " → " +
+            res.status + " (" + ms + " ms)";
 
           let json;
+
           try {
             json = JSON.parse(text);
           } catch {
@@ -583,13 +1051,12 @@
             return;
           }
 
-          document.getElementById("out").textContent = JSON.stringify(
-            json,
-            null,
-            2,
-          );
+          document.getElementById("out").textContent =
+            JSON.stringify(json, null, 2);
 
-          showTable(json.data);
+          showTable(json?.data);
+
+          return json;
         } catch (err) {
           if (version !== requestVersion) return;
 
@@ -604,21 +1071,33 @@
 
         if (!Array.isArray(data) || data.length === 0) return;
 
+        if (
+          !data[0] ||
+          typeof data[0] !== "object" ||
+          Array.isArray(data[0])
+        ) {
+          return;
+        }
+
         const cols = Object.keys(data[0]);
         const table = document.createElement("table");
-        const head = table.insertRow();
+        const thead = table.createTHead();
+        const head = thead.insertRow();
+        const tbody = table.createTBody();
 
-        cols.forEach((c) => {
+        cols.forEach((column) => {
           const th = document.createElement("th");
-          th.textContent = c;
+          th.scope = "col";
+          th.textContent = column;
           head.appendChild(th);
         });
 
         data.forEach((row) => {
-          const tr = table.insertRow();
+          const tr = tbody.insertRow();
 
-          cols.forEach((c) => {
-            const value = row[c];
+          cols.forEach((column) => {
+            const value = row?.[column];
+
             tr.insertCell().textContent =
               value !== null && typeof value === "object"
                 ? JSON.stringify(value)
@@ -629,7 +1108,7 @@
         box.appendChild(table);
       }
 
-      // BEGIN added bus CRUD and analysis helpers
+      // BUS CRUD CONFIGURATION
       const busForms = {
         stop: {
           resource: "stops",
@@ -710,7 +1189,7 @@
         const identity = JSON.stringify(keys);
 
         stored[kind] = stored[kind].filter(
-          item => JSON.stringify(item) !== identity
+          (item) => JSON.stringify(item) !== identity
         );
 
         if (!remove) {
@@ -724,8 +1203,14 @@
       }
 
       function itemUrl(kind, keys) {
-        return "/api/bus/" + busForms[kind].resource + "/" +
-          keys.map(value => encodeURIComponent(value)).join("/");
+        return (
+          "/api/bus/" +
+          busForms[kind].resource +
+          "/" +
+          keys
+            .map((value) => encodeURIComponent(value))
+            .join("/")
+        );
       }
 
       async function fetchJson(method, url, body) {
@@ -749,7 +1234,8 @@
           json = JSON.parse(text);
         } catch {
           throw new Error(
-            "HTTP " + response.status +
+            "HTTP " +
+            response.status +
             ": Expected JSON. Check that Flask is running " +
             "and the API URL is correct."
           );
@@ -757,8 +1243,10 @@
 
         if (!response.ok) {
           const error = new Error(
-            "HTTP " + response.status + ": " +
-            (json.error || json.message || response.statusText)
+            "HTTP " +
+            response.status +
+            ": " +
+            (json?.error || json?.message || response.statusText)
           );
 
           error.status = response.status;
@@ -776,7 +1264,7 @@
         document.getElementById("out").textContent =
           JSON.stringify(json, null, 2);
 
-        showTable(json.data);
+        showTable(json?.data);
       }
 
       function fillBusForm(kind, record) {
@@ -797,14 +1285,14 @@
 
         try {
           const values = Object.fromEntries(
-            config.fields.map(field => [
+            config.fields.map((field) => [
               field,
               raw(kind + "_" + field)
             ])
           );
 
           const missing = config.keys.filter(
-            key => !values[key]
+            (key) => !values[key]
           );
 
           if (missing.length) {
@@ -813,7 +1301,7 @@
             );
           }
 
-          const keys = config.keys.map(key => values[key]);
+          const keys = config.keys.map((key) => values[key]);
           const url = itemUrl(kind, keys);
 
           const body = Object.fromEntries(
@@ -832,7 +1320,7 @@
             );
           }
 
-          // Check storage before creating or deleting a tracked record.
+          // Check tracking storage before creating or deleting.
           if (method === "POST" || method === "DELETE") {
             const stored = loadCreated();
 
@@ -846,9 +1334,10 @@
             "Loading...";
 
           if (method === "POST" || method === "PUT") {
-            const writeUrl = method === "POST"
-              ? "/api/bus/" + config.resource
-              : url;
+            const writeUrl =
+              method === "POST"
+                ? "/api/bus/" + config.resource
+                : url;
 
             await fetchJson(method, writeUrl, body);
             saved = true;
@@ -857,7 +1346,7 @@
               rememberCreated(kind, keys);
             }
 
-            // Fetch the saved database record after the write.
+            // Read back the saved database record.
             const json = await fetchJson("GET", url);
 
             if (
@@ -911,8 +1400,6 @@
             ) + error.message;
         }
       }
-      // END added bus CRUD and analysis helpers
-
 
       async function listCreated(kind) {
         const version = ++requestVersion;
@@ -929,7 +1416,6 @@
 
           for (const keys of stored[kind]) {
             try {
-              // Read current values, not cached form values.
               const json = await fetchJson(
                 "GET",
                 itemUrl(kind, keys)
@@ -938,7 +1424,6 @@
               rows.push(...(json.data || []));
             } catch (error) {
               if (error.status === 404) {
-                // Remove keys for records deleted elsewhere.
                 rememberCreated(kind, keys, true);
               } else {
                 throw error;
@@ -949,7 +1434,8 @@
           displayResult(
             version,
             rows.length
-              ? "Showing " + rows.length +
+              ? "Showing " +
+                rows.length +
                 " record(s) created through this browser."
               : "No records created through this browser yet.",
             {
@@ -974,188 +1460,375 @@
         );
       }
 
-
+      // BUS ARRIVAL VISUALISATION
       const ARRIVALS_URL = "/api/bus-arrivals/";
 
       const LOAD_INFO = {
         SEA: { cls: "ld-sea", label: "Seats" },
         SDA: { cls: "ld-sda", label: "Standing" },
-        LSD: { cls: "ld-lsd", label: "Crowded" },
+        LSD: { cls: "ld-lsd", label: "Crowded" }
       };
-      const TYPE_LABEL = { SD: "Single deck", DD: "Double deck", BD: "Bendy" };
 
-      function escHtml(s) {
-        return String(s).replace(/[&<>"']/g, (c) => ({
-          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-        }[c]));
+      const TYPE_LABEL = {
+        SD: "Single deck",
+        DD: "Double deck",
+        BD: "Bendy"
+      };
+
+      function escHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[character]));
       }
 
       async function showArrivals(code) {
+        const version = ++arrivalRequestVersion;
         const box = document.getElementById("arrival-visual");
+
         code = (code || "").trim();
+
         if (!code) {
-          box.innerHTML = '<p class="arr-msg">Enter a bus stop code.</p>';
+          box.innerHTML =
+            '<p class="arr-msg">Enter a bus stop code.</p>';
           return;
         }
-        box.innerHTML = '<p class="arr-msg">Loading arrivals…</p>';
+
+        box.innerHTML =
+          '<p class="arr-msg">Loading arrivals…</p>';
+
         try {
-          const res = await fetch(ARRIVALS_URL + encodeURIComponent(code) + "/latest");
+          const res = await fetch(
+            ARRIVALS_URL +
+            encodeURIComponent(code) +
+            "/latest"
+          );
+
           const body = await res.json();
-          if (!res.ok) throw new Error(body.error || res.status);
+
+          if (version !== arrivalRequestVersion) return;
+
+          if (!res.ok) {
+            throw new Error(body?.error || res.status);
+          }
+
+          if (!body?.data) {
+            throw new Error("No arrival snapshot was returned.");
+          }
+
           renderArrivals(body.data, code);
-        } catch (e) {
-          box.innerHTML = `<p class="arr-msg">Couldn't load arrivals: ${escHtml(e.message)}</p>`;
+        } catch (error) {
+          if (version !== arrivalRequestVersion) return;
+
+          box.innerHTML =
+            '<p class="arr-msg">Couldn\'t load arrivals: ' +
+            escHtml(error.message) +
+            "</p>";
         }
       }
 
       function arrivalChip(bus, ageMin) {
         if (!bus || bus.minutes_away == null) return "";
+
         const mins = Math.round(bus.minutes_away - ageMin);
         const time = mins <= 0 ? "Arr" : mins + " min";
-        const load = LOAD_INFO[bus.load] || { cls: "ld-na", label: bus.load || "" };
+
+        const load = LOAD_INFO[bus.load] || {
+          cls: "ld-na",
+          label: bus.load || ""
+        };
+
         const type = TYPE_LABEL[bus.bus_type] || "";
-        return `<div class="arr-chip ${load.cls}" title="${escHtml(type)}">
-          <span class="arr-time">${time}</span>
-          <span class="arr-sub">${escHtml(load.label)} · ${escHtml(type || bus.bus_type || "")}</span>
-        </div>`;
+
+        return `
+          <div
+            class="arr-chip ${load.cls}"
+            title="${escHtml(type)}"
+          >
+            <span class="arr-time">${time}</span>
+            <span class="arr-sub">
+              ${escHtml(load.label)} ·
+              ${escHtml(type || bus.bus_type || "")}
+            </span>
+          </div>
+        `;
       }
 
       function renderArrivals(doc, code) {
         const box = document.getElementById("arrival-visual");
         const fetched = new Date(doc.fetched_at);
-        const ageMin = Math.max(0, (Date.now() - fetched) / 60000);
-        const ageText = ageMin < 1 ? "just now" : Math.round(ageMin) + " min ago";
-        const name = doc.bus_stop_name ? " – " + doc.bus_stop_name : "";
-
-        const services = (doc.services || []).slice().sort(
-          (a, b) => parseInt(a.service_no) - parseInt(b.service_no) ||
-                    String(a.service_no).localeCompare(String(b.service_no))
+        const ageMin = Math.max(
+          0,
+          (Date.now() - fetched) / 60000
         );
 
-        let html = `<div class="arr-head">
-          <div><strong>Stop ${escHtml(code)}${escHtml(name)}</strong>
-          <span class="arr-updated">Snapshot ${ageText}</span></div>
-          <button type="button" onclick="showArrivals('${escHtml(code)}')">Refresh</button>
-        </div>`;
+        const ageText =
+          ageMin < 1
+            ? "just now"
+            : Math.round(ageMin) + " min ago";
+
+        const name = doc.bus_stop_name
+          ? " – " + doc.bus_stop_name
+          : "";
+
+        const services = (doc.services || []).slice().sort(
+          (a, b) =>
+            parseInt(a.service_no) - parseInt(b.service_no) ||
+            String(a.service_no).localeCompare(
+              String(b.service_no)
+            )
+        );
+
+        let html = `
+          <div class="arr-head">
+            <div>
+              <strong>
+                Stop ${escHtml(code)}${escHtml(name)}
+              </strong>
+              <span class="arr-updated">
+                Snapshot ${escHtml(ageText)}
+              </span>
+            </div>
+
+            <button
+              id="refresh-arrivals"
+              type="button"
+            >
+              Refresh
+            </button>
+          </div>
+        `;
 
         if (!services.length) {
-          html += '<p class="arr-msg">No buses in this snapshot.</p>';
+          html +=
+            '<p class="arr-msg">No buses in this snapshot.</p>';
         } else {
           html += '<div class="arr-grid">';
-          for (const s of services) {
-            const chips = (s.next_buses || []).map((b) => arrivalChip(b, ageMin)).join("");
-            html += `<div class="arr-card">
-              <div class="arr-svc">${escHtml(s.service_no)}</div>
-              <div class="arr-chips">${chips || '<span class="arr-msg">No data</span>'}</div>
-            </div>`;
+
+          for (const service of services) {
+            const chips = (service.next_buses || [])
+              .map((bus) => arrivalChip(bus, ageMin))
+              .join("");
+
+            html += `
+              <div class="arr-card">
+                <div class="arr-svc">
+                  ${escHtml(service.service_no)}
+                </div>
+
+                <div class="arr-chips">
+                  ${
+                    chips ||
+                    '<span class="arr-msg">No data</span>'
+                  }
+                </div>
+              </div>
+            `;
           }
+
           html += "</div>";
         }
+
         box.innerHTML = html;
+
+        document
+          .getElementById("refresh-arrivals")
+          .addEventListener("click", () => showArrivals(code));
       }
 
+      // TRAIN ROUTE VISUALISATION
       async function showRoute(url) {
-        call(url);
+        const visualVersion = ++routeRequestVersion;
         const box = document.getElementById("route-visual");
+
         box.replaceChildren();
+
+        // Reuse the shared request instead of fetching twice.
+        const resultPromise = call(url);
+        const version = requestVersion;
+        const json = await resultPromise;
+
+        if (
+          visualVersion !== routeRequestVersion ||
+          version !== requestVersion ||
+          !json
+        ) {
+          return;
+        }
+
         try {
-          const res = await fetch(url);
-          const json = await res.json();
-          if (json && json.data && json.data.steps) {
+          if (json.data?.steps) {
             renderRoute(json);
           } else {
             renderTransfers(json);
           }
-        } catch (err) {
-          console.error("Route visual failed:", err);
+        } catch (error) {
+          console.error("Route visual failed:", error);
         }
       }
 
       function renderTransfers(json) {
         const box = document.getElementById("route-visual");
         box.replaceChildren();
-        const d = json && json.data;
-        const list = Array.isArray(d) ? d : d && (d.routes || d.options || d.paths);
-        if (!Array.isArray(list) || !list.length || !Array.isArray(list[0].lines)) return;
 
-        const el = (tag, cls, text) => {
-          const e = document.createElement(tag);
-          if (cls) e.className = cls;
-          if (text !== undefined) e.textContent = text;
-          return e;
+        const data = json && json.data;
+
+        const list = Array.isArray(data)
+          ? data
+          : data && (data.routes || data.options || data.paths);
+
+        if (
+          !Array.isArray(list) ||
+          !list.length ||
+          !Array.isArray(list[0].lines)
+        ) {
+          return;
+        }
+
+        const el = (tag, className, text) => {
+          const element = document.createElement(tag);
+
+          if (className) element.className = className;
+          if (text !== undefined) element.textContent = text;
+
+          return element;
         };
 
-        const best = Math.min(...list.map(o => o.transfers));
+        const best = Math.min(
+          ...list.map((option) => option.transfers)
+        );
+
         const shown = list.slice(0, 10);
 
-        box.appendChild(el("div", "route-summary",
-          `${list.length} route option${list.length === 1 ? "" : "s"} · ` +
-          `fewest transfers: ${best}`));
+        box.appendChild(
+          el(
+            "div",
+            "route-summary",
+            `${list.length} route option${
+              list.length === 1 ? "" : "s"
+            } · fewest transfers: ${best}`
+          )
+        );
 
-        shown.forEach(opt => {
+        shown.forEach((option) => {
           const card = el("div", "opt-card");
-          if (opt.transfers === best) card.classList.add("opt-best");
+
+          if (option.transfers === best) {
+            card.classList.add("opt-best");
+          }
 
           const chain = el("div", "opt-chain");
-          opt.lines.forEach((ln, i) => {
-            if (i) chain.appendChild(el("span", "opt-arrow", "→"));
-            const pill = el("span", "line-pill", ln);
-            pill.dataset.line = ln;
+
+          option.lines.forEach((line, index) => {
+            if (index) {
+              chain.appendChild(
+                el("span", "opt-arrow", "→")
+              );
+            }
+
+            const pill = el("span", "line-pill", line);
+            pill.dataset.line = line;
             chain.appendChild(pill);
           });
+
           card.appendChild(chain);
 
-          const label = opt.transfers === 0
-            ? "Direct, no transfers"
-            : `${opt.transfers} transfer${opt.transfers === 1 ? "" : "s"}`;
-          card.appendChild(el("span", "opt-count", label));
-          if (opt.transfers === best) card.appendChild(el("span", "opt-tag", "Fewest"));
+          const label =
+            option.transfers === 0
+              ? "Direct, no transfers"
+              : `${option.transfers} transfer${
+                  option.transfers === 1 ? "" : "s"
+                }`;
+
+          card.appendChild(
+            el("span", "opt-count", label)
+          );
+
+          if (option.transfers === best) {
+            card.appendChild(
+              el("span", "opt-tag", "Fewest")
+            );
+          }
+
           box.appendChild(card);
         });
 
         if (list.length > shown.length) {
-          box.appendChild(el("div", "opt-more",
-            `+ ${list.length - shown.length} more options not shown`));
+          box.appendChild(
+            el(
+              "div",
+              "opt-more",
+              `+ ${list.length - shown.length} more options not shown`
+            )
+          );
         }
       }
 
       function renderRoute(json) {
         const box = document.getElementById("route-visual");
         box.replaceChildren();
-        const d = json.data;
-        if (!d || !d.steps || !d.steps.length) return;
+
+        const data = json.data;
+
+        if (!data || !data.steps || !data.steps.length) return;
 
         const legs = [];
-        let cur = null;
-        d.steps.forEach((s, i) => {
-          const last = i === d.steps.length - 1;
-          if (!cur) {
-            cur = { line: s.depart_line || s.arrive_line, stations: [s] };
-            legs.push(cur);
+        let current = null;
+
+        data.steps.forEach((step, index) => {
+          const last = index === data.steps.length - 1;
+
+          if (!current) {
+            current = {
+              line: step.depart_line || step.arrive_line,
+              stations: [step]
+            };
+
+            legs.push(current);
             return;
           }
-          cur.stations.push(s);
+
+          current.stations.push(step);
+
           const transfer =
-            s.arrive_line && s.depart_line && s.arrive_line !== s.depart_line;
+            step.arrive_line &&
+            step.depart_line &&
+            step.arrive_line !== step.depart_line;
+
           if (transfer && !last) {
-            cur = { line: s.depart_line, stations: [s] };
-            legs.push(cur);
+            current = {
+              line: step.depart_line,
+              stations: [step]
+            };
+
+            legs.push(current);
           }
         });
 
-        const el = (tag, cls, text) => {
-          const e = document.createElement(tag);
-          if (cls) e.className = cls;
-          if (text !== undefined) e.textContent = text;
-          return e;
+        const el = (tag, className, text) => {
+          const element = document.createElement(tag);
+
+          if (className) element.className = className;
+          if (text !== undefined) element.textContent = text;
+
+          return element;
         };
 
-        const summary = el("div", "route-summary",
-          `${d.from.station_name_english} → ${d.to.station_name_english} · ` +
-          `${d.total_stops} stops · ${d.line_changes} line changes`);
+        const summary = el(
+          "div",
+          "route-summary",
+          `${data.from.station_name_english} → ` +
+          `${data.to.station_name_english} · ` +
+          `${data.total_stops} stops · ` +
+          `${data.line_changes} line changes`
+        );
+
         box.appendChild(summary);
 
-        legs.forEach((leg, i) => {
+        legs.forEach((leg, index) => {
           const first = leg.stations[0];
           const end = leg.stations[leg.stations.length - 1];
           const stops = leg.stations.length - 1;
@@ -1164,35 +1837,70 @@
           card.dataset.line = leg.line;
 
           const head = el("div", "leg-head");
+
           head.append(
             el("span", "leg-badge", leg.line),
-            el("span", "leg-route",
-              `${first.station_name_english} → ${end.station_name_english}`),
-            el("span", "leg-stops", `${stops} stop${stops === 1 ? "" : "s"}`)
+            el(
+              "span",
+              "leg-route",
+              `${first.station_name_english} → ` +
+              `${end.station_name_english}`
+            ),
+            el(
+              "span",
+              "leg-stops",
+              `${stops} stop${stops === 1 ? "" : "s"}`
+            )
           );
+
           card.appendChild(head);
 
           const middle = leg.stations.slice(1, -1);
+
           if (middle.length) {
-            const det = el("details", "leg-details");
-            det.appendChild(el("summary", "", `Show ${middle.length} stops in between`));
-            const ul = el("ul");
-            middle.forEach(m =>
-              ul.appendChild(el("li", "", `${m.station_name_english} (${m.station_codes})`)));
-            det.appendChild(ul);
-            card.appendChild(det);
+            const details = el("details", "leg-details");
+
+            details.appendChild(
+              el(
+                "summary",
+                "",
+                `Show ${middle.length} stops in between`
+              )
+            );
+
+            const list = el("ul");
+
+            middle.forEach((station) => {
+              list.appendChild(
+                el(
+                  "li",
+                  "",
+                  `${station.station_name_english} ` +
+                  `(${station.station_codes})`
+                )
+              );
+            });
+
+            details.appendChild(list);
+            card.appendChild(details);
           }
+
           box.appendChild(card);
 
-          const next = legs[i + 1];
+          const next = legs[index + 1];
+
           if (next) {
-            const chip = el("div", "leg-change",
-              `Change at ${end.station_name_english}: ${leg.line} → ${next.line}`);
-            box.appendChild(chip);
+            box.appendChild(
+              el(
+                "div",
+                "leg-change",
+                `Change at ${end.station_name_english}: ` +
+                `${leg.line} → ${next.line}`
+              )
+            );
           }
         });
       }
-
     </script>
   </body>
 </html>
