@@ -1,265 +1,207 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Station Crowd Levels</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crowd_dashboard.css') }}">
 </head>
 
 <body>
-    <a href="/">Back to API Tester</a>
-    <h1>Station Crowd Levels</h1>
+    <header class="page-header crowd-header">
+        <a class="dashboard-back" href="/" aria-label="Back to home">←</a>
+        <h1>Service Status &amp; Travel Advisories</h1>
+    </header>
 
-    <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
-    <p>Data is collected approximately every 15 minutes.</p>
+    <section aria-labelledby="train-alert-title">
 
-    <p>
-        <label for="line">Train line:</label>
-        <select id="line">
-            <option value="">All lines</option>
-            <option value="CCL">Circle Line</option>
-            <option value="CEL">Circle Line Extension</option>
-            <option value="CGL">Changi Extension</option>
-            <option value="DTL">Downtown Line</option>
-            <option value="EWL">East West Line</option>
-            <option value="NEL">North East Line</option>
-            <option value="NSL">North South Line</option>
-            <option value="BPL">Bukit Panjang LRT</option>
-            <option value="SLRT">Sengkang LRT</option>
-            <option value="PLRT">Punggol LRT</option>
-            <option value="TEL">Thomson-East Coast Line</option>
-        </select>
+        <h3 id="train-alert-title">Train service status</h3>
 
-        <label for="station">Station code:</label>
-        <input id="station" type="search" placeholder="e.g. NS17">
+        <p
+            id="train-alert-status"
+            class="train-status train-status--unknown"
+            role="status"
+        >
+            Loading train-service information...
+        </p>
 
-        <label for="crowd">Crowd level:</label>
-        <select id="crowd">
-            <option value="">All levels</option>
-            <option value="l">Low</option>
-            <option value="m">Moderate</option>
-            <option value="h">High</option>
-            <option value="NA">Not available</option>
-        </select>
+        <p id="train-alert-error" role="status"></p>
 
-        <button id="reset" type="button">Clear filters</button>
-        <button id="refresh" type="button">Refresh</button>
-    </p>
+        <div id="train-alert-details"></div>
 
-    <p id="message" role="status">Loading station information...</p>
-    <p id="refresh-time"></p>
+        <button id="train-alert-refresh" type="button">
+            Refresh service status
+        </button>
+    </section>
 
-    <p id="summary"></p>
+    <hr>
 
-    <div style="overflow-x: auto;">
-        <table border="1" cellpadding="10" cellspacing="0">
-            <thead>
-                <tr>
-                    <th scope="col">Station code</th>
-                    <th scope="col">Train line</th>
-                    <th scope="col">Crowd level</th>
-                    <th scope="col">Observation period</th>
-                    <th scope="col">Last collected</th>
-                </tr>
-            </thead>
-            <tbody id="results"></tbody>
-        </table>
+    <div
+        class="crowd-tabs"
+        role="tablist"
+        aria-label="Station crowd information"
+    >
+        <button
+            id="latest-tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="latest-panel"
+            tabindex="0"
+        >
+            Station Crowd Levels
+        </button>
+
+        <button
+            id="busy-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="busy-panel"
+            tabindex="-1"
+        >
+            Station Busy Hours
+        </button>
     </div>
 
-    <p>All times are shown in Singapore time.</p>
-    <p>
-        “Not available” means the source has no crowd level available.
-        It does not mean the station is uncrowded.
-    </p>
+    <section
+        id="latest-panel"
+        role="tabpanel"
+        aria-labelledby="latest-tab"
+        tabindex="0"
+    >
+        <div class="section-header">
+            <h2>Station Crowd Levels</h2>
+            <p>View the latest recorded crowd levels at MRT and LRT stations.</p>
+        </div>
 
-    <script>
-        const lineNames = {
-            CCL: "Circle Line",
-            CEL: "Circle Line Extension",
-            CGL: "Changi Extension",
-            DTL: "Downtown Line",
-            EWL: "East West Line",
-            NEL: "North East Line",
-            NSL: "North South Line",
-            BPL: "Bukit Panjang LRT",
-            SLRT: "Sengkang LRT",
-            PLRT: "Punggol LRT",
-            TEL: "Thomson-East Coast Line"
-        };
+        <p>
+            <label for="line">Train line:</label>
+            <select id="line">
+                <option value="">All lines</option>
+                <option value="CCL">Circle Line</option>
+                <option value="CEL">Circle Line Extension</option>
+                <option value="CGL">Changi Extension</option>
+                <option value="DTL">Downtown Line</option>
+                <option value="EWL">East West Line</option>
+                <option value="NEL">North East Line</option>
+                <option value="NSL">North South Line</option>
+                <option value="BPL">Bukit Panjang LRT</option>
+                <option value="SLRT">Sengkang LRT</option>
+                <option value="PLRT">Punggol LRT</option>
+                <option value="TEL">Thomson-East Coast Line</option>
+            </select>
 
-        const crowdNames = {
-            l: "Low",
-            m: "Moderate",
-            h: "High",
-            NA: "Not available"
-        };
+            <label for="station">Station code:</label>
+            <input
+                id="station"
+                type="search"
+                placeholder="e.g. NS17"
+            >
 
-        const results = document.getElementById("results");
-        const message = document.getElementById("message");
-        const summary = document.getElementById("summary");
+            <label for="crowd">Crowd level:</label>
+            <select id="crowd">
+                <option value="">All levels</option>
+                <option value="l">Low</option>
+                <option value="m">Moderate</option>
+                <option value="h">High</option>
+                <option value="NA">Not available</option>
+            </select>
 
-        let observations = [];
-        let loading = false;
-        let hasLoaded = false;
+            <button id="reset" type="button">Clear filters</button>
+            <button id="refresh" type="button">Refresh</button>
+        </p>
 
-        function formatTime(value) {
-            if (!value) return "Not available";
+        <p id="message" role="status">Loading station information...</p>
+        <p id="refresh-time"></p>
 
-            const date = new Date(value);
+        <div class="table-container">
+            <table border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th scope="col">Station code</th>
+                        <th scope="col">Station name</th>
+                        <th scope="col">Train line</th>
+                        <th scope="col">Crowd level</th>
+                        <th scope="col">Observation period</th>
+                        <th scope="col">Last collected</th>
+                    </tr>
+                </thead>
 
-            if (Number.isNaN(date.getTime())) {
-                return "Not available";
-            }
+                <tbody id="results"></tbody>
+            </table>
+        </div>
 
-            return date.toLocaleString("en-SG", {
-                timeZone: "Asia/Singapore",
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true
-            });
-        }
+        <p>All times are shown in Singapore time.</p>
 
-        function displayRows() {
-            const line = document.getElementById("line").value;
-            const station = document.getElementById("station")
-                .value.trim().toUpperCase();
-            const crowd = document.getElementById("crowd").value;
+        <p>
+            “Not available” means the source has no crowd level available.
+            It does not mean the station is uncrowded.
+        </p>
+    </section>
 
-            const filtered = observations.filter(item =>
-                (!line || item.line_code === line) &&
-                (!station || item.station_code.toUpperCase().includes(station)) &&
-                (!crowd || item.crowd_level === crowd)
-            );
+    <section
+        id="busy-panel"
+        role="tabpanel"
+        aria-labelledby="busy-tab"
+        tabindex="0"
+        hidden
+    >
+    <div class="section-header">
+        <h2 id="busy-hours-title">Station Busy Hours</h2>
+        <p>View recorded crowd patterns by hour at MRT and LRT stations.</p>
+    </div>
 
-            filtered.sort((a, b) =>
-                a.line_code.localeCompare(b.line_code) ||
-                a.station_code.localeCompare(
-                    b.station_code,
-                    "en",
-                    { numeric: true }
-                )
-            );
+        <form id="busy-hours-form">
+            <label for="busy-search">Station name or code:</label>
 
-            results.replaceChildren();
+            <input
+                id="busy-search"
+                type="search"
+                placeholder="e.g. Bishan, 碧山, CC15"
+                maxlength="100"
+                autocomplete="off"
+                required
+            >
 
-            for (const item of filtered) {
-                const row = document.createElement("tr");
+            <button id="busy-search-button" type="submit">
+                Search
+            </button>
+        </form>
 
-                const values = [
-                    item.station_code,
-                    lineNames[item.line_code] || item.line_code,
-                    crowdNames[item.crowd_level] || "Not available",
-                    `${formatTime(item.start_time)} – ${formatTime(item.end_time)}`,
-                    formatTime(item.fetched_at)
-                ];
+        <div id="station-choice-container" hidden>
+            <label for="station-choice">Choose a station:</label>
 
-                for (const value of values) {
-                    const cell = document.createElement("td");
-                    cell.textContent = value;
-                    row.appendChild(cell);
-                }
+            <select id="station-choice">
+                <option value="">Select a station</option>
+            </select>
+        </div>
 
-                results.appendChild(row);
-            }
+        <p id="busy-message" role="status"></p>
+        <p>Results are based on recorded observations.</p>
 
-            if (!filtered.length) {
-                const row = document.createElement("tr");
-                const cell = document.createElement("td");
+        <div id="busy-tables"></div>
+    </section>
 
-                cell.colSpan = 5;
-                cell.textContent = hasLoaded
-                    ? "No station observations match your selection."
-                    : "No station information loaded yet.";
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_latest.js') }}"
+    ></script>
 
-                row.appendChild(cell);
-                results.appendChild(row);
-            }
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_busy_hours.js') }}"
+    ></script>
 
-            const counts = { l: 0, m: 0, h: 0, NA: 0 };
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/train_alerts.js') }}"
+    ></script>
 
-            for (const item of filtered) {
-                const level = Object.hasOwn(counts, item.crowd_level)
-                    ? item.crowd_level
-                    : "NA";
-
-                counts[level]++;
-            }
-
-            summary.textContent =
-                `Showing ${filtered.length} station readings: ` +
-                `${counts.l} Low | ` +
-                `${counts.m} Moderate | ` +
-                `${counts.h} High | ` +
-                `${counts.NA} Not available`;
-        }
-
-        async function refreshData() {
-            if (loading) return;
-
-            loading = true;
-            document.getElementById("refresh").disabled = true;
-            message.textContent = "Loading station information...";
-
-            try {
-                const response = await fetch("/api/crowd/latest", {
-                    cache: "no-store"
-                });
-
-                const body = await response.json();
-
-                if (!response.ok) {
-                    throw new Error("Unable to load station information.");
-                }
-
-                if (!Array.isArray(body.data)) {
-                    throw new Error("Unexpected station information received.");
-                }
-
-                observations = body.data;
-                hasLoaded = true;
-                displayRows();
-
-                message.textContent = "";
-                document.getElementById("refresh-time").textContent =
-                    "Display refreshed: " + formatTime(new Date());
-
-            } catch (error) {
-                message.textContent = hasLoaded
-                    ? "Could not refresh. Previously loaded information is still shown."
-                    : "Station information is unavailable. Please try again.";
-
-            } finally {
-                loading = false;
-                document.getElementById("refresh").disabled = false;
-            }
-        }
-
-        document.getElementById("line")
-            .addEventListener("change", displayRows);
-
-        document.getElementById("crowd")
-            .addEventListener("change", displayRows);
-
-        document.getElementById("station")
-            .addEventListener("input", displayRows);
-
-        document.getElementById("reset").addEventListener("click", () => {
-            document.getElementById("line").value = "";
-            document.getElementById("station").value = "";
-            document.getElementById("crowd").value = "";
-            displayRows();
-        });
-
-        document.getElementById("refresh")
-            .addEventListener("click", refreshData);
-
-        setInterval(() => {
-            if (!document.hidden) refreshData();
-        }, 60000);
-
-        refreshData();
-    </script>
+    <script
+        type="module"
+        src="{{ url_for('static', filename='js/crowd_tabs.js') }}"
+    ></script>
 </body>
 </html>
