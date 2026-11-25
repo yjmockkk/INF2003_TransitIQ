@@ -123,11 +123,16 @@ The database should contain these seven tables:
 
 `StationConnection` is created empty by `train_schema.sql`. It stores a copy of the station-to-station connections defined by the view `v_name_graph`, so route lookups are fast. It is filled in section 5.5, after the train data has been imported.
 
-### 4.2 Verify the train dataset files
+### 4.2 Verify the bus and train dataset files
 
-Ensure that the following train datasets are available:
+Ensure that the following bus and train datasets are available:
 
 ```
+datasets/bus/json
+├── BusRoutes.json
+└── BusServices.json
+└── BusStops.json
+
 datasets/train/csv/
 ├── train_stations.csv
 └── train_lines.csv
@@ -138,8 +143,6 @@ datasets/train/excel/
 ```
 
 CSV files must be saved as **CSV UTF-8 (Comma delimited)** so that special characters and Chinese station names load correctly.
-
-The bus import script does not need local CSV or JSON files, because it retrieves the bus datasets directly from LTA DataMall.
 
 ### 4.3 Check the MySQL connection settings in the import scripts
 

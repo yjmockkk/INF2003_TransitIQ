@@ -88,22 +88,20 @@ Ensure that the following train datasets are available:
 
 CSV files should use UTF-8 encoding to preserve special characters and Chinese station names.
 
-### Step 4: Configure the LTA DataMall API Key
-To request API access, visit https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html 
+### Step 4: Verify the Bus Dataset Files
 
-#### Set the API Key
+Ensure that the following saved LTA JSON datasets are available:
 
-Open a terminal in the TransitIQ project root directory.
+    datasets/bus/json/
+    ├── BusStops.json
+    ├── BusServices.json
+    └── BusRoutes.json
 
-For macOS/Linux:
+`bus_import.py` reads these local files. An LTA API key and
+internet connection are not required for importing them.
 
-    export LTA_API_KEY='YOUR_LTA_API_KEY'
-
-For Windows PowerShell:
-
-    $env:LTA_API_KEY = "YOUR_LTA_API_KEY"
-
-Replace `YOUR_LTA_API_KEY` with your actual API key.
+If the files are missing or need refreshing, follow
+“Optional: Refresh the saved bus datasets” below.
 
 ### Step 5: Verify MySQL Connection Settings
 The import scripts use the following local database settings:
