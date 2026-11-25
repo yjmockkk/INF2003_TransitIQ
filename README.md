@@ -167,6 +167,81 @@ python database/scripts/train_import.py
 
 Enter your MySQL password when prompted each time. The bus and train scripts populate separate tables and can be run in either order.
 
+### Bus Import Process
+Ensure the three JSON files are available in `datasets/bus/json/`.
+
+From the project root, run:
+
+    python database/scripts/bus_import.py
+
+Enter your MySQL password when prompted.
+
+The bus import script performs the following operations:
+
+1. Loads and checks the three local JSON datasets.
+2. Connects to the `Transitiq` MySQL database.
+3. Clears existing records in the order:
+   `BusRoute` → `BusService` → `BusStop`.
+4. Imports records in the order:
+   `BusStop` → `BusService` → `BusRoute`.
+5. Checks required fields, numeric values and foreign-key references.
+6. Skips invalid records and displays the reasons.
+7. Commits the import and displays the final row counts. MySQL errors trigger a rollback.
+
+The import order is important because `BusService` references `BusStop`, while `BusRoute` references both `BusService` and `BusStop`.
+
+The script uses `ON DUPLICATE KEY UPDATE` to handle records with existing primary keys.
+
+<b>Important:</b> Each execution performs a fresh import by clearing and repopulating the bus tables. Any existing bus records, including manually added test data, will be removed. Back up important data before running the script. The train tables are not intentionally cleared by the bus importer.
+
+### Bus Import Results
+The following results were obtained from a successful import:
+
+| Table | Source records | Records processed | Records skipped |
+|---|---|---|---|
+| BusStop | 5210 | 5210 | 0 |
+| BusService | 805 | 802 | 3 |
+| BusRoute | 26972 | 26972 | 0 |
+| Total | 32987 | 32984 | 3 |
+
+Three bus services (291, 293 and 307) were skipped because the data returned missing `OriginCode` and `DestinationCode` values.
+
+These records could not satisfy the NOT NULL and foreign-key constraints defined in the `BusService` table.
+
+The final MySQL database counts after the fresh import were:
+
+    BusStop: 5210 total rows
+    BusService: 802 total rows
+    BusRoute: 26972 total rows
+
+Note: The source record counts may change when the LTA datasets are updated.
+
+#### Optional: Refresh the saved bus datasets
+The included JSON files can be imported directly. To retrieve fresh
+datasets from LTA DataMall, run:
+
+    python database/scripts/retrieve_bus_data.py
+
+An LTA DataMall Account Key and internet connection are required. The script retrieves all pages and saves the three JSON files in `datasets/bus/json/`, backing up previous files automatically.
+
+Retrieval does not modify MySQL. Run `bus_import.py` afterwards to load the refreshed files into the database.
+
+#### Train import process
+
+`train_import.py` reads the converted train CSV datasets and populates the `TrainLine`, `TrainStation` and `StationLine` tables. The expected output is:
+
+```
+TrainLine records processed: 11
+TrainStation records processed: 213
+StationLine records processed: 213
+Import completed successfully!
+```
+
+Check these counts against the actual output when you run the script. Both scripts can be run again safely: existing rows are updated rather than duplicated.
+
+### 5.5 Create the train views and fill `StationConnection`
+
+Do this after the train import in section 5.4, because the views read the imported train tables.
 ### 4.5 Create the train views and fill `StationConnection`
 
 Do this after the train import in section 4.4, because the views read the imported train tables.
