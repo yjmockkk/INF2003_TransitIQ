@@ -248,45 +248,64 @@ python database/scripts/train_import.py
 
 Enter your MySQL password when prompted each time. The bus and train scripts populate separate tables and can be run in either order.
 
-#### Bus import process
+### Bus Import Process
+Ensure the three JSON files are available in `datasets/bus/json/`.
 
-The bus import script performs these operations:
+From the project root, run:
 
-1. Authenticates with LTA DataMall using the API key.
-2. Retrieves the complete Bus Stops, Bus Services and Bus Routes datasets using `$skip` pagination, with up to 500 records per request.
-3. Connects to the `Transitiq` MySQL database.
-4. Clears the existing records from the three bus tables, in the order `BusRoute`, `BusService`, `BusStop`.
-5. Imports the retrieved records in the order `BusStop`, `BusService`, `BusRoute`.
-6. Validates mandatory fields, numeric values and foreign-key references before insertion.
-7. Skips records that fail validation and displays the reasons.
-8. Commits the imported data and displays the final database row counts.
+    python database/scripts/bus_import.py
 
-The import order is important because `BusService` references `BusStop`, while `BusRoute` references both `BusService` and `BusStop`. The script uses `ON DUPLICATE KEY UPDATE` to handle records with existing primary keys.
+Enter your MySQL password when prompted.
 
-**Important:** each run performs a fresh import by clearing and repopulating the bus tables. Any existing bus records, including manually added test data, will be removed. Back up important data before running the script. The train tables are not intentionally cleared by the bus importer.
+The bus import script performs the following operations:
 
-#### Bus import results
+1. Loads and checks the three local JSON datasets.
+2. Connects to the `Transitiq` MySQL database.
+3. Clears existing records in the order:
+   `BusRoute` → `BusService` → `BusStop`.
+4. Imports records in the order:
+   `BusStop` → `BusService` → `BusRoute`.
+5. Checks required fields, numeric values and foreign-key references.
+6. Skips invalid records and displays the reasons.
+7. Commits the import and displays the final row counts. MySQL errors trigger a rollback.
 
-These results were obtained from a successful LTA DataMall API import:
+The import order is important because `BusService` references `BusStop`, while `BusRoute` references both `BusService` and `BusStop`.
+
+The script uses `ON DUPLICATE KEY UPDATE` to handle records with existing primary keys.
+
+<b>Important:</b> Each execution performs a fresh import by clearing and repopulating the bus tables. Any existing bus records, including manually added test data, will be removed. Back up important data before running the script. The train tables are not intentionally cleared by the bus importer.
+
+### Bus Import Results
+The following results were obtained from a successful import:
 
 | Table | Source records | Records processed | Records skipped |
 |---|---|---|---|
-| `BusStop` | 5209 | 5209 | 0 |
-| `BusService` | 804 | 801 | 3 |
-| `BusRoute` | 26946 | 26946 | 0 |
-| Total | 32959 | 32956 | 3 |
+| BusStop | 5210 | 5210 | 0 |
+| BusService | 805 | 802 | 3 |
+| BusRoute | 26972 | 26972 | 0 |
+| Total | 32987 | 32984 | 3 |
 
-Three bus services (291, 293 and 307) were skipped because the API returned missing `OriginCode` and `DestinationCode` values. These records could not satisfy the `NOT NULL` and foreign-key constraints defined in the `BusService` table.
+Three bus services (291, 293 and 307) were skipped because the data returned missing `OriginCode` and `DestinationCode` values.
 
-The final MySQL row counts after the fresh import were:
+These records could not satisfy the NOT NULL and foreign-key constraints defined in the `BusService` table.
 
-```
-BusStop: 5209 total rows
-BusService: 801 total rows
-BusRoute: 26946 total rows
-```
+The final MySQL database counts after the fresh import were:
 
-The source record counts may change when the LTA datasets are updated.
+    BusStop: 5210 total rows
+    BusService: 802 total rows
+    BusRoute: 26972 total rows
+
+Note: The source record counts may change when the LTA datasets are updated.
+
+#### Optional: Refresh the saved bus datasets
+The included JSON files can be imported directly. To retrieve fresh
+datasets from LTA DataMall, run:
+
+    python database/scripts/retrieve_bus_data.py
+
+An LTA DataMall Account Key and internet connection are required. The script retrieves all pages and saves the three JSON files in `datasets/bus/json/`, backing up previous files automatically.
+
+Retrieval does not modify MySQL. Run `bus_import.py` afterwards to load the refreshed files into the database.
 
 #### Train import process
 
