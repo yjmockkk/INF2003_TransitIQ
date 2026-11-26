@@ -15,7 +15,7 @@
 
   <body class="api-tester">
     <header class="page-header">
-      <h1>TransitIQ API Tester - Final Edition!</h1>
+      <h1>TransitIQ API Tester - Group 14</h1>
     </header>
 
     <main class="tester-shell">
@@ -1565,10 +1565,31 @@
           (Date.now() - fetched) / 60000
         );
 
-        const ageText =
-          ageMin < 1
-            ? "just now"
-            : Math.round(ageMin) + " min ago";
+        // Saved sample snapshots can be days old. Taking their age off
+        // every arrival would show "Arr" for every bus, so for a snapshot
+        // older than 15 minutes show the times as they were recorded.
+        const isOld = ageMin > 15;
+        const shiftMin = isOld ? 0 : ageMin;
+
+        let ageText;
+
+        if (isOld) {
+          ageText =
+            "from " +
+            fetched.toLocaleString("en-SG", {
+              timeZone: "Asia/Singapore",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit"
+            }) +
+            " (times as recorded)";
+        } else if (ageMin < 1) {
+          ageText = "just now";
+        } else {
+          ageText = Math.round(ageMin) + " min ago";
+        }
 
         const name = doc.bus_stop_name
           ? " – " + doc.bus_stop_name
@@ -1610,7 +1631,7 @@
 
           for (const service of services) {
             const chips = (service.next_buses || [])
-              .map((bus) => arrivalChip(bus, ageMin))
+              .map((bus) => arrivalChip(bus, shiftMin))
               .join("");
 
             html += `
