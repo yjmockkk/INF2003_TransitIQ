@@ -72,7 +72,7 @@ STATION_ORDER = """
 def search_stations():
     q = request.args.get("q", "").strip()
     line = request.args.get("line", "").strip()
-    limit = min(request.args.get("limit", 50, type=int), 500)
+    limit = request.args.get("limit", type=int)
     offset = max(request.args.get("offset", 0, type=int), 0)
 
     sql = """
@@ -95,8 +95,12 @@ def search_stations():
         sql += " AND l.line_code = %s"
         params.append(line)
 
-    sql += STATION_ORDER + " LIMIT %s OFFSET %s"
-    params += [limit, offset]
+    sql += STATION_ORDER
+
+    if limit is not None:
+        limit = min(max(limit, 1), 500)
+        sql += " LIMIT %s OFFSET %s"
+        params += [limit, offset]
 
     try:
         return ok(db.query(sql, params), limit=limit, offset=offset)
