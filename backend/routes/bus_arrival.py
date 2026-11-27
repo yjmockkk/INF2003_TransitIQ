@@ -46,8 +46,7 @@ def to_json(value):
 
 # Read ?hours= (default 24, between 1 and 168) and return the cut-off time.
 # The window counts back from the stop's newest snapshot instead of from now,
-# so the saved sample data still works after collection has stopped.
-# With live data the newest snapshot is only minutes old, so nothing changes.
+# so the saved sample data always has a full window to analyse.
 def since_hours(stop_code):
     hours = request.args.get("hours", 24, type=int)
     hours = max(1, min(hours, 168))

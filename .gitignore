@@ -1,4 +1,4 @@
-# API keys and passwords
+# Passwords and local settings
 .env
 .env.*
 !.env.example
@@ -17,6 +17,3 @@ datasets/raw/
 # Operating system files
 .DS_Store
 Thumbs.db
-
-# Local API rate-limit cache
-.cache/

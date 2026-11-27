@@ -278,12 +278,6 @@ resetButton.addEventListener("click", () => {
 
 refreshButton.addEventListener("click", refreshData);
 
-setInterval(() => {
-    if (!document.hidden) {
-        refreshData();
-    }
-}, 60000);
-
 // Load crowd readings immediately.
 refreshData();
 
