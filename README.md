@@ -40,11 +40,11 @@ python -c "import flask, mysql.connector, dotenv, requests, pymongo; print('ok')
 
 ---
 
-## 3. Configure `.env` and the LTA API key
+## 3. Configure your database connections
 
 ### 3.1 Create your own `.env` file
 
-The `.env` file stores **your own** database login details. It is not included in the repository, so each member must create it on their own computer. Do not copy another member's `.env`, because the password, port and username may not match your setup.
+Create a local `.env` with the connection settings for your own MySQL and MongoDB servers.
 
 1. In `backend/`, make a copy of `.env.example` and name the copy `.env`. You should now have both files side by side.
 2. Open `.env` and fill in each value with the details of **your own** servers:
@@ -60,10 +60,7 @@ DB_NAME=Transitiq
 # MongoDB (used by the NoSQL import scripts)
 MONGO_URI=mongodb://localhost:27017/
 MONGO_DB=TransitIQ
-LTA_ACCOUNT_KEY=your_actual_key
 ```
-
-Replace `your_actual_key` with your LTA Account Key.
 
 If you change `.env` while the server is running, stop the server with `Ctrl+C` and start it again.
 
@@ -110,13 +107,13 @@ The database should contain these seven tables:
 
 ### 4.2 Verify the bus and train dataset files
 
-Ensure that the following saved bus JSON files and train datasets are available:
+Ensure that the following bus and train datasets are available:
 
 ```
-datasets/bus/json/
-├── BusStops.json
-├── BusServices.json
-└── BusRoutes.json
+datasets/bus/json
+├── BusRoutes.json
+└── BusServices.json
+└── BusStops.json
 
 datasets/train/csv/
 ├── train_stations.csv
@@ -148,7 +145,7 @@ These settings are separate from `backend/.env`, which is used by the Flask back
 
 ### 4.4 Run the import scripts
 
-From the project root, with the dataset files available, run:
+From the project root, load the bundled files into MySQL, run:
 
 ```
 python database/scripts/bus_import.py
@@ -275,7 +272,7 @@ SELECT COUNT(*) AS total_station_connections FROM StationConnection;
 
 ## 5. Set up MongoDB
 
-MongoDB stores the time-based operational data: station crowd density and train service alerts.
+MongoDB stores the time-based operational data: station crowd density, train service alerts and bus arrival snapshots.
 
 ### 5.1 Install MongoDB
 
@@ -295,28 +292,82 @@ mongodb://localhost:27017
 
 ### 5.2 Check your settings
 
-The NoSQL scripts read `MONGO_URI`, `MONGO_DB` and `LTA_ACCOUNT_KEY` from `backend/.env`. Make sure you added them in section 3.1, below the MySQL settings.
+The sample importers and Flask read `MONGO_URI` and `MONGO_DB` from `backend/.env` (section 3.1). If your local database already contains live data, you can set `MONGO_DB` to a fresh name such as `TransitIQ_demo` for the sample demo.
 
-### 5.3 Import the data
+### 5.3 Load the train crowd and service alert samples
+
+Run the one-time importer from the project root.
+
+```powershell
+python database/scripts/train_sample_import.py
+```
+
+The importer reads two bundled files from `database/nosql/sample_data/` and prints the following counts.
+
+| Sample file | MongoDB collection | Sample documents |
+|---|---|---:|
+| `StationCrowdDensity.json` | `StationCrowdDensity` | 86,466 |
+| `TrainServiceAlert.json` | `TrainServiceAlert` | 5 |
+
+The importer creates the collections and their indexes through `mongo_db.py`. Rerunning it replaces matching sample documents by `_id`. The train crowd and alert features use the saved snapshots and require no LTA API key.
+
+### 5.4 Check your data
+
+In MongoDB Compass, open the database named by `MONGO_DB` and check the **Documents** and **Indexes** tabs for both collections. After starting Flask (section 6), open `http://localhost:5000/crowd-dashboard` to view crowd levels, busy-hour summaries and the latest saved service alert.
+
+### 5.5 Load the bus arrival sample data (no API key needed)
+
+Bus arrival monitoring uses saved snapshots from the LTA DataMall Bus Arrival API. A snapshot of every service at each of 10 bus stops was taken about every 15 minutes from 31 Oct to 8 Nov 2026 (with a few gaps), giving 3,417 snapshots. They are stored in `database/nosql/sample_data/BusArrival.zip`.
 
 From the project root, run:
 
 ```
-python database/scripts/density_import.py
-python database/scripts/alerts_import.py
+python database/scripts/bus_arrival_sample_import.py
 ```
 
-The scripts automatically create this database and these collections:
+Expected output:
 
 ```
-TransitIQ
-├── StationCrowdDensity
-└── TrainServiceAlert
+Read 3417 snapshots from BusArrival.zip
+Saved 3417 snapshots for 10 stops
+From 31 Oct 2026 20:53 to 08 Nov 2026 00:11 (SGT)
 ```
 
-### 5.4 Check your data
+The script reads the zip directly, so there is no need to unzip it or import it through Compass. It creates the `BusArrival` collection and its index. It empties the collection before loading, so it is safe to run again.
 
-Refresh MongoDB Compass, open `TransitIQ`, and select each collection to view its documents.
+The 10 monitored stops are:
+
+| Stop code | Name | Stop code | Name |
+|---|---|---|---|
+| 46009 | Woodlands Int | 22009 | Boon Lay Int |
+| 54009 | Ang Mo Kio Int | 14009 | HarbourFront Int |
+| 67009 | Sengkang Int | 08057 | Dhoby Ghaut Stn |
+| 75009 | Tampines Int | 09047 | Orchard Stn/Tang Plaza |
+| 52009 | Toa Payoh Int | 17171 | Clementi Stn |
+
+#### Bus arrival endpoints
+
+Start the app (section 6), then try these. The Bus arrivals box on the test page uses `/latest`.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/bus-arrivals/stops` | Monitored stops with snapshot counts and date range |
+| GET | `/api/bus-arrivals/75009/latest` | Latest snapshot for a stop |
+| GET | `/api/bus-arrivals/75009/history?service=10&hours=24` | Past snapshots for one service at a stop |
+| GET | `/api/bus-arrivals/75009/average-wait?hours=24` | Average, shortest and longest wait per service (aggregation pipeline) |
+| GET | `/api/bus-arrivals/75009/crowding?hours=24` | Share of buses with seats, standing room or limited standing (aggregation pipeline) |
+| PUT | `/api/bus-arrivals/75009/name` | Rename a stop in all its snapshots. Body: `{"bus_stop_name": "Tampines Bus Interchange"}` |
+| DELETE | `/api/bus-arrivals/old?days=7` | Delete snapshots older than the given number of days |
+
+Notes:
+
+- `hours` is between 1 and 168 (default 24). The window counts back from the stop's newest snapshot, not from the current time, so the analytics also work on the saved data.
+- On the test page, a snapshot older than 15 minutes shows the arrival times as they were recorded, with the date and time it was taken.
+- **Warning:** `DELETE /api/bus-arrivals/old?days=7` counts from today, so it deletes all of the sample data. If that happens, run `bus_arrival_sample_import.py` again.
+
+#### Optional: collect live bus arrivals
+
+`database/scripts/bus_arrival_import.py` fetches the current arrivals for the 10 stops from LTA DataMall and adds one snapshot per stop each time it runs. It needs `LTA_ACCOUNT_KEY` in `backend/.env`. The app does not run it automatically, and it is not needed for the rest of the project.
 
 ---
 
@@ -356,6 +407,9 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | Route results look out of date after changing stations | Re-run `train_view.sql` to refresh `StationConnection` |
 | `Error Code: 1175` when refreshing a table | Use `TRUNCATE TABLE <name>;` instead of `DELETE` (Workbench Safe Updates blocks `DELETE` without `WHERE`) |
 | MongoDB scripts cannot connect | Make sure the MongoDB service is running and `MONGO_URI` in `backend/.env` is correct |
+| The train crowd dashboard shows no saved data | Check `MONGO_DB` in `backend/.env` and run `train_sample_import.py` (section 5.3) |
+| Bus arrival endpoints return no data, or `/latest` returns 404 | Run `bus_arrival_sample_import.py` (section 5.5) and use one of the 10 monitored stop codes |
+| Bus arrival `history` returns no rows | Check that the service stops at that stop (see `/latest` for the services there) |
 
 ### Running the API
 
@@ -382,3 +436,9 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | View created records is empty although database rows exist | The list only tracks creations made through the tester in this browser and at this hostname/port. Use the normal list endpoints to inspect other records. |
 | Test records disappear after running the bus importer | The importer clears and repopulates all three bus tables. Create fresh test records after importing. |
 | A successful write is followed by a read error | The write may already be committed. Read the record before retrying Create to avoid a duplicate-key error. |
+
+## 8. LTA data and API key security
+
+- **The sample-data setup runs without an LTA DataMall API key.** The optional live bus tools use a key to request fresh data from LTA. Keep credentials private and exclude `backend/.env` from submission archives.
+- **What the data contains.** The saved LTA data is public transport information: bus stops, services, routes, arrival times, bus load and bus type, plus train crowd levels and service alerts. It contains no personal data. It is used for this academic project under the LTA DataMall terms of use.
+- **If a key is exposed** (for example in a screenshot or chat), request a new key from LTA DataMall and update your own `.env`.

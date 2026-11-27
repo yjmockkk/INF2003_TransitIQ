@@ -45,10 +45,25 @@ def to_json(value):
 
 
 # Read ?hours= (default 24, between 1 and 168) and return the cut-off time.
-def since_hours():
+# The window counts back from the stop's newest snapshot instead of from now,
+# so the saved sample data still works after collection has stopped.
+# With live data the newest snapshot is only minutes old, so nothing changes.
+def since_hours(stop_code):
     hours = request.args.get("hours", 24, type=int)
     hours = max(1, min(hours, 168))
-    return hours, datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    newest = arrivals.find_one(
+        {"bus_stop_code": stop_code},
+        {"fetched_at": 1},
+        sort=[("fetched_at", -1)],
+    )
+
+    if newest is None:
+        end = datetime.now(timezone.utc)
+    else:
+        end = newest["fetched_at"]
+
+    return hours, end - timedelta(hours=hours)
 
 
 # ---------- READ ----------
@@ -103,7 +118,7 @@ def history(stop_code):
     if not service:
         return jsonify({"error": "'service' is required"}), 400
 
-    hours, since = since_hours()
+    hours, since = since_hours(stop_code)
 
     # "services.$" returns only the array element that matched the query
     documents = arrivals.find(
@@ -133,6 +148,7 @@ def history(stop_code):
         "count": len(rows),
         "service": service,
         "hours": hours,
+        "since": to_json(since),
     })
 
 
@@ -141,7 +157,7 @@ def history(stop_code):
 # Average waiting time for the next bus, per service, over a time window.
 @bp.get("/<stop_code>/average-wait")
 def average_wait(stop_code):
-    hours, since = since_hours()
+    hours, since = since_hours(stop_code)
 
     rows = arrivals.aggregate([
         {"$match": {
@@ -175,14 +191,19 @@ def average_wait(stop_code):
         }},
     ])
     rows = list(rows)
-    return jsonify({"data": rows, "count": len(rows), "hours": hours})
+    return jsonify({
+        "data": rows,
+        "count": len(rows),
+        "hours": hours,
+        "since": to_json(since),
+    })
 
 
 # Example: /api/bus-arrivals/75009/crowding?hours=24
 # How often incoming buses had seats, standing room or limited standing.
 @bp.get("/<stop_code>/crowding")
 def crowding(stop_code):
-    hours, since = since_hours()
+    hours, since = since_hours(stop_code)
 
     rows = arrivals.aggregate([
         {"$match": {
@@ -213,7 +234,12 @@ def crowding(stop_code):
         {"$sort": {"buses": -1}},
     ])
     rows = list(rows)
-    return jsonify({"data": rows, "count": len(rows), "hours": hours})
+    return jsonify({
+        "data": rows,
+        "count": len(rows),
+        "hours": hours,
+        "since": to_json(since),
+    })
 
 
 # ---------- UPDATE ----------

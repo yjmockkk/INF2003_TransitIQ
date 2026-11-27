@@ -1,3 +1,7 @@
+# Optional: collects live bus arrivals from LTA DataMall and adds them
+# to the BusArrival collection. Needs LTA_ACCOUNT_KEY in backend/.env.
+# The app does not need this. To load the saved sample data instead, run
+# database/scripts/bus_arrival_sample_import.py (no key needed).
 import os
 from datetime import datetime, timezone
 
