@@ -10,6 +10,8 @@ TransitIQ organises Singapore bus and train information. Structured reference da
 - MySQL Server 8.0 installed and running locally
 - MySQL Workbench or DBeaver (or another MySQL client)
 - MongoDB Community Server and MongoDB Compass 
+- An LTA DataMall API key for the MongoDB data imports; not required for importing the saved bus JSON files
+- The bus JSON datasets present in `datasets/bus/json/`
 - The train CSV datasets present in `datasets/train/csv/`
 
 ---
@@ -61,6 +63,16 @@ MONGO_DB=TransitIQ
 ```
 
 If you change `.env` while the server is running, stop the server with `Ctrl+C` and start it again.
+
+### 3.2 Get an LTA DataMall API key
+
+1. Go to [LTA DataMall](https://datamall.lta.gov.sg/) and request API access at [https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html).
+2. Register and obtain your Account Key.
+3. Keep the key private.
+
+The NoSQL scripts `density_import.py` and `alerts_import.py` use `LTA_ACCOUNT_KEY` from `backend/.env`.
+
+`bus_import.py` does not require an LTA API key or internet access to LTA DataMall. It reads the saved JSON datasets included in `datasets/bus/json/`.
 
 ---
 
@@ -114,6 +126,8 @@ datasets/train/excel/
 
 CSV files must be saved as **CSV UTF-8 (Comma delimited)** so that special characters and Chinese station names load correctly.
 
+The bus JSON datasets originated from LTA DataMall and are saved locally. `bus_import.py` reads these files; it does not download new data or call the LTA API. Keep the exact filenames shown above.
+
 ### 4.3 Check the MySQL connection settings in the import scripts
 
 The import scripts use these local database settings:
@@ -131,7 +145,7 @@ These settings are separate from `backend/.env`, which is used by the Flask back
 
 ### 4.4 Run the import scripts
 
-From the project root, load the bundled files into MySQL.
+From the project root, load the bundled files into MySQL, run:
 
 ```
 python database/scripts/bus_import.py
@@ -189,16 +203,6 @@ The final MySQL database counts after the fresh import were:
 
 Note: The source record counts may change when the LTA datasets are updated.
 
-#### Optional: Refresh the saved bus datasets
-The included JSON files can be imported directly. To retrieve fresh
-datasets from LTA DataMall, run:
-
-    python database/scripts/retrieve_bus_data.py
-
-An LTA DataMall Account Key and internet connection are required. The script retrieves all pages and saves the three JSON files in `datasets/bus/json/`, backing up previous files automatically.
-
-Retrieval does not modify MySQL. Run `bus_import.py` afterwards to load the refreshed files into the database.
-
 #### Train import process
 
 `train_import.py` reads the converted train CSV datasets and populates the `TrainLine`, `TrainStation` and `StationLine` tables. The expected output is:
@@ -210,7 +214,7 @@ StationLine records processed: 213
 Import completed successfully!
 ```
 
-Check these counts against the actual output when you run the script. Both scripts can be run again safely: existing rows are updated rather than duplicated.
+Check these counts against the actual output when you run the script. The train importer updates existing keys rather than duplicating them. The bus importer clears and reloads its three tables, including any manually created bus records.
 
 ### 5.5 Create the train views and fill `StationConnection`
 
@@ -260,8 +264,9 @@ SELECT COUNT(*) AS total_station_lines FROM StationLine;
 SELECT COUNT(*) AS total_station_connections FROM StationConnection;
 ```
 
-- The bus table counts should reflect the successfully imported LTA records after the fresh import. Counts may differ from the API source totals if records are skipped due to missing values, foreign-key constraints or duplicate primary keys.
+- The bus table counts should reflect the successfully imported records from the saved JSON files. Counts may differ from the JSON source totals due to skipped records or duplicate primary keys.
 - `StationConnection` should have the same number of rows as `v_name_graph`.
+- Re-running `bus_import.py` reloads the saved JSON files into MySQL; it does not retrieve new data from LTA DataMall and does not require an LTA API key.
 
 ---
 
@@ -385,7 +390,7 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | `ModuleNotFoundError: mysql` | Run section 3 again, using the same Python that runs the script |
 | `ModuleNotFoundError: No module named 'requests'` | Run section 3 |
 | `ModuleNotFoundError: No module named 'pymongo'` | Run section 3 |
-| `LTA_API_KEY is not set` | Set the environment variable in the same terminal (section 4.2) |
+| MongoDB scripts fail on the LTA call | Check `LTA_ACCOUNT_KEY` in `backend/.env`. The bus JSON importer does not use an API key. |
 | LTA API returns 401 or 403 | Check the API key and access permissions |
 | LTA API returns 429 | Reduce request frequency and retry later |
 | `Table ... doesn't exist` | Execute the database creation and schema scripts first (section 5.1) |
@@ -393,10 +398,10 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | `View ... doesn't exist` | Run `train_view.sql` (section 5.5) |
 | `Can't connect to MySQL server` | Start the MySQL service and check the `host` and `port` values |
 | `Access denied` | Check the MySQL username, password and permissions |
-| `FileNotFoundError` | Check the train CSV filenames and folder structure |
+| `FileNotFoundError` | Check bus JSON files in `datasets/bus/json/` and train CSV files in `datasets/train/csv/`. |
 | Garbled Chinese text | Re-export the train CSVs as UTF-8 |
 | Bus records skipped | Check the reported missing fields, invalid values or foreign-key references |
-| Different database row counts | Review skipped records, duplicate keys and the API source record counts |
+| Different database row counts | Review skipped records, duplicate keys and the saved dataset record counts. |
 | Bus table clearing fails | Check whether other tables reference the bus tables through foreign keys |
 | Route API returns no route, or `StationConnection` has 0 rows | Run the train import, then re-run `train_view.sql` |
 | Route results look out of date after changing stations | Re-run `train_view.sql` to refresh `StationConnection` |
