@@ -10,7 +10,6 @@ TransitIQ organises Singapore bus and train information. Structured reference da
 - MySQL Server 8.0 installed and running locally
 - MySQL Workbench or DBeaver (or another MySQL client)
 - MongoDB Community Server and MongoDB Compass 
-- An LTA DataMall API key (not needed for bus arrival monitoring, which runs on the included sample data; see section 5.5)
 - The train CSV datasets present in `datasets/train/csv/`
 
 ---
@@ -39,11 +38,11 @@ python -c "import flask, mysql.connector, dotenv, requests, pymongo; print('ok')
 
 ---
 
-## 3. Configure `.env` and the LTA API key
+## 3. Configure your database connections
 
 ### 3.1 Create your own `.env` file
 
-The `.env` file stores **your own** database login details. It is not included in the repository, so each member must create it on their own computer. Do not copy another member's `.env`, because the password, port and username may not match your setup.
+Create a local `.env` with the connection settings for your own MySQL and MongoDB servers.
 
 1. In `backend/`, make a copy of `.env.example` and name the copy `.env`. You should now have both files side by side.
 2. Open `.env` and fill in each value with the details of **your own** servers:
@@ -59,38 +58,9 @@ DB_NAME=Transitiq
 # MongoDB (used by the NoSQL import scripts)
 MONGO_URI=mongodb://localhost:27017/
 MONGO_DB=TransitIQ
-LTA_ACCOUNT_KEY=your_actual_key
 ```
-
-Replace `your_actual_key` with your LTA Account Key.
 
 If you change `.env` while the server is running, stop the server with `Ctrl+C` and start it again.
-
-### 3.2 Get an LTA DataMall API key
-
-1. Go to [LTA DataMall](https://datamall.lta.gov.sg/) and request API access at [https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html).
-2. Register and obtain your Account Key.
-3. Keep the key private.
-
-To set the key for `bus_import.py`, open a terminal in the project root.
-
-For macOS/Linux:
-
-```
-export LTA_API_KEY='YOUR_LTA_API_KEY'
-```
-
-For Windows PowerShell:
-
-```
-$env:LTA_API_KEY = "YOUR_LTA_API_KEY"
-```
-
-Replace `YOUR_LTA_API_KEY` with your actual key. Important notes:
-
-- The key must be set in the same terminal session that runs `bus_import.py`.
-- When you open a new terminal session, you may need to set it again.
-- The importer needs an internet connection to retrieve LTA data.
 
 ---
 
@@ -161,7 +131,7 @@ These settings are separate from `backend/.env`, which is used by the Flask back
 
 ### 4.4 Run the import scripts
 
-From the project root, with the LTA API key set (section 4.2), run:
+From the project root, load the bundled files into MySQL.
 
 ```
 python database/scripts/bus_import.py
@@ -292,7 +262,6 @@ SELECT COUNT(*) AS total_station_connections FROM StationConnection;
 
 - The bus table counts should reflect the successfully imported LTA records after the fresh import. Counts may differ from the API source totals if records are skipped due to missing values, foreign-key constraints or duplicate primary keys.
 - `StationConnection` should have the same number of rows as `v_name_graph`.
-- The bus import can be re-run to refresh the bus data from LTA DataMall. The API key and an internet connection must be available whenever the script retrieves new data.
 
 ---
 
@@ -318,28 +287,28 @@ mongodb://localhost:27017
 
 ### 5.2 Check your settings
 
-The NoSQL scripts read `MONGO_URI`, `MONGO_DB` and `LTA_ACCOUNT_KEY` from `backend/.env`. Make sure you added them in section 3.1, below the MySQL settings.
+The sample importers and Flask read `MONGO_URI` and `MONGO_DB` from `backend/.env` (section 3.1). If your local database already contains live data, you can set `MONGO_DB` to a fresh name such as `TransitIQ_demo` for the sample demo.
 
-### 5.3 Import the data
+### 5.3 Load the train crowd and service alert samples
 
-From the project root, run:
+Run the one-time importer from the project root.
 
+```powershell
+python database/scripts/train_sample_import.py
 ```
-python database/scripts/density_import.py
-python database/scripts/alerts_import.py
-```
 
-The scripts automatically create this database and these collections:
+The importer reads two bundled files from `database/nosql/sample_data/` and prints the following counts.
 
-```
-TransitIQ
-├── StationCrowdDensity
-└── TrainServiceAlert
-```
+| Sample file | MongoDB collection | Sample documents |
+|---|---|---:|
+| `StationCrowdDensity.json` | `StationCrowdDensity` | 86,466 |
+| `TrainServiceAlert.json` | `TrainServiceAlert` | 5 |
+
+The importer creates the collections and their indexes through `mongo_db.py`. Rerunning it replaces matching sample documents by `_id`. The train crowd and alert features use the saved snapshots and require no LTA API key.
 
 ### 5.4 Check your data
 
-Refresh MongoDB Compass, open `TransitIQ`, and select each collection to view its documents.
+In MongoDB Compass, open the database named by `MONGO_DB` and check the **Documents** and **Indexes** tabs for both collections. After starting Flask (section 6), open `http://localhost:5000/crowd-dashboard` to view crowd levels, busy-hour summaries and the latest saved service alert.
 
 ### 5.5 Load the bus arrival sample data (no API key needed)
 
@@ -433,7 +402,7 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | Route results look out of date after changing stations | Re-run `train_view.sql` to refresh `StationConnection` |
 | `Error Code: 1175` when refreshing a table | Use `TRUNCATE TABLE <name>;` instead of `DELETE` (Workbench Safe Updates blocks `DELETE` without `WHERE`) |
 | MongoDB scripts cannot connect | Make sure the MongoDB service is running and `MONGO_URI` in `backend/.env` is correct |
-| MongoDB scripts fail on the LTA call | Check that `LTA_ACCOUNT_KEY` is set in `backend/.env` |
+| The train crowd dashboard shows no saved data | Check `MONGO_DB` in `backend/.env` and run `train_sample_import.py` (section 5.3) |
 | Bus arrival endpoints return no data, or `/latest` returns 404 | Run `bus_arrival_sample_import.py` (section 5.5) and use one of the 10 monitored stop codes |
 | Bus arrival `history` returns no rows | Check that the service stops at that stop (see `/latest` for the services there) |
 
@@ -465,8 +434,6 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 
 ## 8. LTA data and API key security
 
-- **Each member uses their own key.** LTA DataMall account keys are personal, so each member requests their own. The key is stored only in `backend/.env`, which is listed in `.gitignore` and never committed. `backend/.env.example` contains placeholders only.
-- **No key is included in this submission.** Bus arrival monitoring runs on the included sample data (section 5.5), and the MySQL bus import reads the saved files in `datasets/bus/json/`, so neither needs a key.
-- **How the key is used.** The scripts read the key from `.env` and send it to LTA only in the `AccountKey` request header. It is not printed, logged or saved to MySQL or MongoDB. The rate-limit cache in `.cache/` (also gitignored) names its files after a hash of the key, not the key itself.
+- **The sample-data setup runs without an LTA DataMall API key.** The optional live bus tools use a key to request fresh data from LTA. Keep credentials private and exclude `backend/.env` from submission archives.
 - **What the data contains.** The saved LTA data is public transport information: bus stops, services, routes, arrival times, bus load and bus type, plus train crowd levels and service alerts. It contains no personal data. It is used for this academic project under the LTA DataMall terms of use.
 - **If a key is exposed** (for example in a screenshot or chat), request a new key from LTA DataMall and update your own `.env`.
