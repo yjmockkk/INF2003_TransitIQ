@@ -2,7 +2,7 @@
 
 Repository for the INF2003 Database Systems group project.
 
-TransitIQ organises Singapore bus and train information. Structured reference data (bus stops, services, routes, train stations and lines) is stored in **MySQL**. Time-based operational data (station crowd density and train service alerts) is stored in **MongoDB**. A **Flask** backend exposes the data as JSON endpoints, and includes a test page for checking every query.
+TransitIQ organises Singapore bus and train information. Structured reference data (bus stops, services, routes, train stations and lines) is stored in **MySQL**. Time-based data (station crowd density, train service alerts and bus arrival snapshots) is loaded from the included sample data into **MongoDB**. A **Flask** backend exposes the data as JSON endpoints, and includes a test page for checking every query.
 
 ## 1. Prerequisites
 
@@ -115,7 +115,7 @@ datasets/train/excel/
 
 CSV files must be saved as **CSV UTF-8 (Comma delimited)** so that special characters and Chinese station names load correctly.
 
-The bus JSON datasets originated from LTA DataMall and are saved locally. `bus_import.py` reads these files; it does not download new data. Keep the exact filenames shown above.
+`bus_import.py` reads the bus JSON datasets saved in `datasets/bus/json/`. Keep the exact filenames shown above.
 
 ### 4.3 Check the MySQL connection settings in the import scripts
 
@@ -190,8 +190,6 @@ The final MySQL database counts after the fresh import were:
     BusService: 802 total rows
     BusRoute: 26972 total rows
 
-Note: The source record counts may change when the LTA datasets are updated.
-
 #### Train import process
 
 `train_import.py` reads the converted train CSV datasets and populates the `TrainLine`, `TrainStation` and `StationLine` tables. The expected output is:
@@ -205,9 +203,6 @@ Import completed successfully!
 
 Check these counts against the actual output when you run the script. The train importer updates existing keys rather than duplicating them. The bus importer clears and reloads its three tables, including any manually created bus records.
 
-### 5.5 Create the train views and fill `StationConnection`
-
-Do this after the train import in section 5.4, because the views read the imported train tables.
 ### 4.5 Create the train views and fill `StationConnection`
 
 Do this after the train import in section 4.4, because the views read the imported train tables.
@@ -306,7 +301,7 @@ In MongoDB Compass, open the database named by `MONGO_DB` and check the **Docume
 
 ### 5.5 Load the bus arrival sample data
 
-Bus arrival monitoring uses saved snapshots of LTA DataMall bus arrival data. A snapshot of every service at each of 10 bus stops was taken about every 15 minutes from 31 Oct to 8 Nov 2026 (with a few gaps), giving 3,417 snapshots. They are stored in `database/nosql/sample_data/BusArrival.zip`.
+Bus arrival monitoring uses the sample data in `database/nosql/sample_data/BusArrival.zip`. It holds 3,417 snapshots of every service at 10 bus stops, taken about every 15 minutes from 31 Oct to 8 Nov 2026 (with a few gaps).
 
 From the project root, run:
 
@@ -351,7 +346,7 @@ Start the app (section 6), then try these. The Bus arrivals box on the test page
 Notes:
 
 - `hours` is between 1 and 168 (default 24). The window counts back from the stop's newest snapshot, not from the current time, so the analytics also work on the saved data.
-- On the test page, a snapshot older than 15 minutes shows the arrival times as they were recorded, with the date and time it was taken.
+- On the test page, each snapshot shows the arrival times as they were recorded, with the date and time it was taken.
 - **Warning:** `DELETE /api/bus-arrivals/old?days=7` counts from today, so it deletes all of the sample data. If that happens, run `bus_arrival_sample_import.py` again.
 
 ---
@@ -372,11 +367,11 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 
 | Problem | Fix |
 |---|---|
-| `ModuleNotFoundError: mysql` | Run section 3 again, using the same Python that runs the script |
-| `ModuleNotFoundError: No module named 'pymongo'` | Run section 3 |
-| `Table ... doesn't exist` | Execute the database creation and schema scripts first (section 5.1) |
+| `ModuleNotFoundError: mysql` | Run section 2 again, using the same Python that runs the script |
+| `ModuleNotFoundError: No module named 'pymongo'` | Run section 2 |
+| `Table ... doesn't exist` | Execute the database creation and schema scripts first (section 4.1) |
 | `Table ... StationConnection doesn't exist` | Run `train_schema.sql` before `train_view.sql` |
-| `View ... doesn't exist` | Run `train_view.sql` (section 5.5) |
+| `View ... doesn't exist` | Run `train_view.sql` (section 4.5) |
 | `Can't connect to MySQL server` | Start the MySQL service and check the `host` and `port` values |
 | `Access denied` | Check the MySQL username, password and permissions |
 | `FileNotFoundError` | Check bus JSON files in `datasets/bus/json/` and train CSV files in `datasets/train/csv/`. |
@@ -396,7 +391,7 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 
 | Problem | Fix |
 |---|---|
-| `Import "flask" could not be resolved` (VS Code) | Run section 3, then pick the right interpreter with `Ctrl+Shift+P`, then Python: Select Interpreter |
+| `Import "flask" could not be resolved` (VS Code) | Run section 2, then pick the right interpreter with `Ctrl+Shift+P`, then Python: Select Interpreter |
 | `ModuleNotFoundError` when starting the server | Run `python -m pip install -r requirements.txt` so pip uses the same Python |
 | `Authentication plugin 'auth_gssapi_client' is not supported` | Another server (usually MariaDB) is answering on your port, or the password is wrong. Check `.env` and set `DB_PORT` to the MySQL 8.0 port from `SELECT @@port` |
 | `Can't connect to MySQL server` when starting the API | Start the MySQL service and check `DB_HOST` and `DB_PORT` in `.env` |
