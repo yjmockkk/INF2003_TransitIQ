@@ -4,21 +4,19 @@ Two Python scripts are used to populate the `Transitiq` MySQL database with bus 
 
 | Script | Tables populated | Dataset files |
 |---|---|---|
-| `bus_import.py` | `BusStop`, `BusService`, `BusRoute` | LTA DataMall API (Bus Stops, Bus Services and Bus Routes) |
+| `bus_import.py` | `BusStop`, `BusService`, `BusRoute` | Saved LTA JSON files in `datasets/bus/json/` |
 | `train_import.py` | `TrainLine`, `TrainStation`, `StationLine` | `datasets/train/csv/` (converted from original Excel datasets) |
 
 ## Data Sources
 ### Bus datasets
-The bus datasets are retrieved directly from Singapore's Land Transport Authority (LTA) DataMall API using an API key.
+The bus datasets are retrieved from Singapore's Land Transport Authority (LTA) DataMall and saved locally as JSON files.
 
 The three datasets used are:
 - <b>Bus Stops:</b> Contains bus stop codes, road names, descriptions and geographical coordinates.
 - <b>Bus Services:</b> Contains bus service numbers, directions, operators, categories, origins, destinations and frequency information.
 - <b>Bus Routes:</b> Contains the sequence of bus stops along each service, route distances and first/last bus timings.
 
-Initially, limited JSON samples from LTA DataMall were used to examine the dataset structures. However, these samples were insufficient for populating the relational database. Therefore, the implementation was updated to retrieve the complete datasets directly through the LTA DataMall API.
-
-The Python import script retrieves the complete datasets using API pagination and populates the corresponding MySQL tables.
+`bus_import.py` reads these saved files and imports them into MySQL. It does not call the LTA API, so an LTA API key and internet access are not required for the bus import.
 
 ### Train datasets
 The original train datasets were provided in Excel format (`Train-Station-Codes-and-Chinese-Names.xls` and `Train-Line-Codes.xlsx`). 
@@ -31,7 +29,7 @@ Before running the import scripts, ensure that:
 - MySQL Server 8.0 is installed and running locally
 - MySQL Workbench/DBeaver (or another MySQL client is available)
 - An LTA DataMall API key is available for retrieving the datasets.
-- The train CSV datasets are present in the required directory.
+- The bus JSON and train CSV datasets are present in the required directory.
 
 ### Step 1: Install Python Dependencies
 
@@ -90,33 +88,20 @@ Ensure that the following train datasets are available:
 
 CSV files should use UTF-8 encoding to preserve special characters and Chinese station names.
 
-The bus import script does not require local CSV or JSON files, as it retrieves the bus datasets directly from LTA DataMall.
+### Step 4: Verify the Bus Dataset Files
 
-### Step 4: Configure the LTA DataMall API Key
-The `bus_import.py` script retrieves bus datasets directly from LTA DataMall and requires a valid API key.
+Ensure that the following saved LTA JSON datasets are available:
 
-To request API access, visit https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html 
+    datasets/bus/json/
+    ├── BusStops.json
+    ├── BusServices.json
+    └── BusRoutes.json
 
-#### Set the API Key
+`bus_import.py` reads these local files. An LTA API key and
+internet connection are not required for importing them.
 
-Open a terminal in the TransitIQ project root directory.
-
-For macOS/Linux:
-
-    export LTA_API_KEY='YOUR_LTA_API_KEY'
-
-For Windows PowerShell:
-
-    $env:LTA_API_KEY = "YOUR_LTA_API_KEY"
-
-Replace `YOUR_LTA_API_KEY` with your actual API key.
-
-#### Important notes:
-- The API key must be configured in the terminal session used to run the script.
-- When opening a new terminal session, the API key may need to be exported again.
-- The API key must not be hardcoded into Python files.
-- The importer requires an internet connection to retrieve LTA data.
-- Running `bus_import.py` clears and repopulates the existing bus tables. Back up important bus data before running it.
+If the files are missing or need refreshing, follow
+“Optional: Refresh the saved bus datasets” below.
 
 ### Step 5: Verify MySQL Connection Settings
 The import scripts use the following local database settings:
@@ -133,7 +118,6 @@ The password is requested when a script runs, so it is never stored in the file.
 From the TransitIQ project root directory, run:
 
 ### Import bus datasets
-
     python database/scripts/bus_import.py
 
 ### Import train datasets
@@ -144,16 +128,25 @@ Enter your MySQL password when prompted.
 The bus and train scripts populate separate tables and can be executed independently.
 
 ### Bus Import Process
+Ensure the three JSON files are available in `datasets/bus/json/`.
+
+From the project root, run:
+
+    python database/scripts/bus_import.py
+
+Enter your MySQL password when prompted.
+
 The bus import script performs the following operations:
 
-1. Authenticates with LTA DataMall using the API key.
-2. Retrieves the complete Bus Stops, Bus Services and Bus Routes datasets using $skip pagination, with up to 500 records per request.
-3. Connects to the Transitiq MySQL database.
-4. Clears the existing records from the three bus tables in the order BusRoute → BusService → BusStop.
-5. Imports the retrieved records in the order BusStop → BusService → BusRoute
-6. Validates mandatory fields, numeric values and foreign-key references before insertion.
-7. Skips records that fail validation and displays the reasons.
-8. Commits the imported data and displays the final database row counts.
+1. Loads and checks the three local JSON datasets.
+2. Connects to the `Transitiq` MySQL database.
+3. Clears existing records in the order:
+   `BusRoute` → `BusService` → `BusStop`.
+4. Imports records in the order:
+   `BusStop` → `BusService` → `BusRoute`.
+5. Checks required fields, numeric values and foreign-key references.
+6. Skips invalid records and displays the reasons.
+7. Commits the import and displays the final row counts. MySQL errors trigger a rollback.
 
 The import order is important because `BusService` references `BusStop`, while `BusRoute` references both `BusService` and `BusStop`.
 
@@ -162,26 +155,37 @@ The script uses `ON DUPLICATE KEY UPDATE` to handle records with existing primar
 <b>Important:</b> Each execution performs a fresh import by clearing and repopulating the bus tables. Any existing bus records, including manually added test data, will be removed. Back up important data before running the script. The train tables are not intentionally cleared by the bus importer.
 
 ### Bus Import Results
-The following results were obtained from a successful LTA DataMall API import:
+The following results were obtained from a successful import:
 
 | Table | Source records | Records processed | Records skipped |
 |---|---|---|---|
-| BusStop | 5209 | 5209 | 0 |
-| BusService | 804 | 801 | 3 |
-| BusRoute | 26946 | 26946 | 0 |
-| Total | 32959| 32956| 3 |
+| BusStop | 5210 | 5210 | 0 |
+| BusService | 805 | 802 | 3 |
+| BusRoute | 26972 | 26972 | 0 |
+| Total | 32987 | 32984 | 3 |
 
-Three bus services (291, 293 and 307) were skipped because the API returned missing `OriginCode` and `DestinationCode` values.
+Three bus services (291, 293 and 307) were skipped because the data returned missing `OriginCode` and `DestinationCode` values.
 
 These records could not satisfy the NOT NULL and foreign-key constraints defined in the `BusService` table.
 
 The final MySQL database counts after the fresh import were:
 
-    BusStop: 5209 total rows
-    BusService: 801 total rows
-    BusRoute: 26946 total rows
+    BusStop: 5210 total rows
+    BusService: 802 total rows
+    BusRoute: 26972 total rows
 
 Note: The source record counts may change when the LTA datasets are updated.
+
+#### Optional: Refresh the saved bus datasets
+The included JSON files can be imported directly. To retrieve fresh
+datasets from LTA DataMall, run:
+
+    python database/scripts/retrieve_bus_data.py
+
+An LTA DataMall Account Key and internet connection are required. The script retrieves all pages and saves the three JSON files in `datasets/bus/json/`, backing up previous files automatically.
+
+Retrieval does not modify MySQL. Run `bus_import.py` afterwards to load the refreshed files into the database.
+
 
 ### Train Import Process
 The `train_import.py` script reads the converted train CSV datasets and populates the `TrainLine`, `TrainStation` and `StationLine` tables.

@@ -1,56 +1,37 @@
 # Import necessary libraries
-import os
-import requests
+import json
+from pathlib import Path
 from decimal import Decimal, InvalidOperation
 from getpass import getpass
 import mysql.connector
 
-# LTA DataMall API settings
-BASE_URL = "https://datamall2.mytransport.sg/ltaodataservice"
-PAGE_SIZE = 500
+# Locate local bus JSON sample datasets
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATASET_DIR = BASE_DIR / "datasets" / "bus" / "json"
 
-# Retrieve complete bus datasets from LTA DataMall
-def load_lta_api(dataset_name, api_key):
-    url = f"{BASE_URL}/{dataset_name}"
 
-    headers = {
-        "AccountKey": api_key
-    }
+# Retrieve datasets from local sample files
+def load_sample_data(filename):
+    file_path = DATASET_DIR / filename
 
-    all_records = []
-    skip = 0
+    with open(file_path, "r", encoding="utf-8-sig") as file:
+        data = json.load(file)
 
-    while True:
-        response = requests.get(
-            url,
-            headers=headers,
-            params={"$skip": skip},
-            timeout=30
-        )
+    if isinstance(data, dict):
+        data = data.get("value")
 
-        response.raise_for_status()
+    if not isinstance(data, list):
+        raise ValueError(f"Invalid dataset format: {filename}")
 
-        records = response.json()["value"]
+    if not data:
+        raise ValueError(f"No records found in {filename}")
 
-        if not isinstance(records, list):
-            raise ValueError(f"Invalid response for {dataset_name}")
+    if not all(isinstance(record, dict) for record in data):
+        raise ValueError(f"Invalid records in {filename}")
 
-        all_records.extend(records)
+    print(f"{filename}: loaded {len(data)} records")
 
-        print(
-            f"{dataset_name}: retrieved "
-            f"{len(all_records)} records so far"
-        )
-
-        if len(records) < PAGE_SIZE:
-            break
-
-        skip += PAGE_SIZE
-
-    if not all_records:
-        raise ValueError(f"No records retrieved for {dataset_name}")
-
-    return all_records
+    return data
 
 # Convert empty values to SQL NULL
 def clean_value(value):
@@ -82,27 +63,18 @@ def clean_number(value):
     except InvalidOperation:
         return None
 
-# Retrieve datasets before connecting to MySQL
-api_key = os.getenv("LTA_API_KEY")
-
-if not api_key:
-    raise SystemExit("LTA_API_KEY is not set.")
-
+# Retrieve sample datasets before connecting to MySQL
 try:
-    print("\n=== Retrieving LTA DataMall Datasets ===")
+    print("\n=== Loading Local Sample Datasets ===")
 
-    bus_stops = load_lta_api("BusStops", api_key)
-    bus_services = load_lta_api("BusServices", api_key)
-    bus_routes = load_lta_api("BusRoutes", api_key)
+    bus_stops = load_sample_data("BusStops.json")
+    bus_services = load_sample_data("BusServices.json")
+    bus_routes = load_sample_data("BusRoutes.json")
 
-except (
-    requests.exceptions.RequestException,
-    ValueError,
-    KeyError
-) as error:
-    raise SystemExit(f"LTA API error: {error}")
+except (OSError, ValueError) as error:
+    raise SystemExit(f"Sample data error: {error}")
 
-print("\n=== Main Dataset: LTA DataMall API ===")
+print("\n=== Local Sample Data ===")
 print("Bus Stops:", len(bus_stops))
 print("Bus Services:", len(bus_services))
 print("Bus Routes:", len(bus_routes))
@@ -134,7 +106,7 @@ try:
     print("Existing bus records cleared.")
 
     # Import BusStop records
-    print("\n=== LTA DataMall API: BusStop ===")
+    print("\n=== Sample Data: BusStop ===")
 
     insert_bus_stop = """
     INSERT INTO BusStop (
@@ -188,6 +160,12 @@ try:
                 stops_skipped += 1
                 continue
 
+            if not (-90 <= latitude <= 90):
+                raise ValueError("Latitude must be between -90 and 90")
+
+            if not (-180 <= longitude <= 180):
+                raise ValueError("Longitude must be between -180 and 180")
+
             cursor.execute(insert_bus_stop, (
                 stop_code,
                 road_name,
@@ -199,6 +177,10 @@ try:
             valid_stops.add(stop_code)
             stops_processed += 1
 
+        except ValueError as error:
+            print("Skipping BusStop:", stop.get("BusStopCode"), error)
+            stops_skipped += 1
+
         except mysql.connector.Error as error:
             print("BusStop import failed:", stop.get("BusStopCode"), error)
             raise
@@ -207,7 +189,7 @@ try:
     print("Records skipped:", stops_skipped)
 
     # Import BusService records
-    print("\n=== LTA DataMall API: BusService ===")
+    print("\n=== Sample Data: BusService ===")
 
     insert_bus_service = """
     INSERT INTO BusService (
@@ -274,6 +256,9 @@ try:
 
             direction = int(direction_value)
 
+            if direction not in (1, 2):
+                raise ValueError("Direction must be 1 or 2")
+
             # Check foreign-key references
             if (
                 origin not in valid_stops
@@ -316,7 +301,7 @@ try:
     print("Records skipped:", services_skipped)
 
     # Import BusRoute records
-    print("\n=== LTA DataMall API: BusRoute ===")
+    print("\n=== Sample Data: BusRoute ===")
 
     insert_bus_route = """
     INSERT INTO BusRoute (
@@ -380,7 +365,16 @@ try:
                 continue
 
             direction = int(direction_value)
+
+            if direction not in (1, 2):
+                raise ValueError("Direction must be 1 or 2")
             stop_seq = int(sequence_value)
+
+            if stop_seq < 1:
+                raise ValueError("StopSequence must be at least 1")
+
+            if distance < 0:
+                raise ValueError("Distance cannot be negative")
 
             service_key = (service_no, direction)
 
@@ -456,11 +450,10 @@ try:
         total = cursor.fetchone()[0]
         print(f"{table}: {total} total rows")
 
-except mysql.connector.Error as error:
-    if connection is not None:
+except Exception:
+    if connection is not None and connection.is_connected():
         connection.rollback()
-
-    print("\nMySQL error:", error)
+    raise
 
 finally:
     if cursor is not None:
