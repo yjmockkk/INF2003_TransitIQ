@@ -366,7 +366,7 @@ async function refreshTrainAlerts() {
 
         if (body.data === null) {
             statusElement.textContent =
-                "No train-service information has been collected yet.";
+                "No train-service sample data has been imported yet.";
 
             detailsElement.replaceChildren();
             if (checkedElement) checkedElement.textContent = "";
@@ -415,9 +415,3 @@ async function refreshTrainAlerts() {
 refreshButton.addEventListener("click", refreshTrainAlerts);
 
 refreshTrainAlerts();
-
-setInterval(() => {
-    if (!document.hidden) {
-        refreshTrainAlerts();
-    }
-}, 60000);

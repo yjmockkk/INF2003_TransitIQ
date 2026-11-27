@@ -10,7 +10,6 @@ TransitIQ organises Singapore bus and train information. Structured reference da
 - MySQL Server 8.0 installed and running locally
 - MySQL Workbench or DBeaver (or another MySQL client)
 - MongoDB Community Server and MongoDB Compass 
-- An LTA DataMall API key for the MongoDB data imports; not required for importing the saved bus JSON files
 - The bus JSON datasets present in `datasets/bus/json/`
 - The train CSV datasets present in `datasets/train/csv/`
 
@@ -24,18 +23,18 @@ From the project root, run:
 pip install -r requirements.txt
 ```
 
-This installs the packages the project uses: Flask, `mysql-connector-python`, `python-dotenv`, `requests` and `pymongo`. If you use a virtual environment, activate it first.
+This installs the packages the project uses: Flask, `mysql-connector-python`, `python-dotenv` and `pymongo`. If you use a virtual environment, activate it first.
 
 If any package is reported as missing, install it directly with the same Python that runs the scripts:
 
 ```
-python -m pip install flask mysql-connector-python python-dotenv requests pymongo
+python -m pip install flask mysql-connector-python python-dotenv pymongo
 ```
 
 To confirm the install worked:
 
 ```
-python -c "import flask, mysql.connector, dotenv, requests, pymongo; print('ok')"
+python -c "import flask, mysql.connector, dotenv, pymongo; print('ok')"
 ```
 
 ---
@@ -63,16 +62,6 @@ MONGO_DB=TransitIQ
 ```
 
 If you change `.env` while the server is running, stop the server with `Ctrl+C` and start it again.
-
-### 3.2 Get an LTA DataMall API key
-
-1. Go to [LTA DataMall](https://datamall.lta.gov.sg/) and request API access at [https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html).
-2. Register and obtain your Account Key.
-3. Keep the key private.
-
-The NoSQL scripts `density_import.py` and `alerts_import.py` use `LTA_ACCOUNT_KEY` from `backend/.env`.
-
-`bus_import.py` does not require an LTA API key or internet access to LTA DataMall. It reads the saved JSON datasets included in `datasets/bus/json/`.
 
 ---
 
@@ -126,7 +115,7 @@ datasets/train/excel/
 
 CSV files must be saved as **CSV UTF-8 (Comma delimited)** so that special characters and Chinese station names load correctly.
 
-The bus JSON datasets originated from LTA DataMall and are saved locally. `bus_import.py` reads these files; it does not download new data or call the LTA API. Keep the exact filenames shown above.
+The bus JSON datasets originated from LTA DataMall and are saved locally. `bus_import.py` reads these files; it does not download new data. Keep the exact filenames shown above.
 
 ### 4.3 Check the MySQL connection settings in the import scripts
 
@@ -266,7 +255,7 @@ SELECT COUNT(*) AS total_station_connections FROM StationConnection;
 
 - The bus table counts should reflect the successfully imported records from the saved JSON files. Counts may differ from the JSON source totals due to skipped records or duplicate primary keys.
 - `StationConnection` should have the same number of rows as `v_name_graph`.
-- Re-running `bus_import.py` reloads the saved JSON files into MySQL; it does not retrieve new data from LTA DataMall and does not require an LTA API key.
+- Re-running `bus_import.py` reloads the saved JSON files into MySQL.
 
 ---
 
@@ -292,7 +281,7 @@ mongodb://localhost:27017
 
 ### 5.2 Check your settings
 
-The sample importers and Flask read `MONGO_URI` and `MONGO_DB` from `backend/.env` (section 3.1). If your local database already contains live data, you can set `MONGO_DB` to a fresh name such as `TransitIQ_demo` for the sample demo.
+The sample importers and Flask read `MONGO_URI` and `MONGO_DB` from `backend/.env` (section 3.1). If your local database already contains other data, you can set `MONGO_DB` to a fresh name such as `TransitIQ_demo` for the sample demo.
 
 ### 5.3 Load the train crowd and service alert samples
 
@@ -309,15 +298,15 @@ The importer reads two bundled files from `database/nosql/sample_data/` and prin
 | `StationCrowdDensity.json` | `StationCrowdDensity` | 86,466 |
 | `TrainServiceAlert.json` | `TrainServiceAlert` | 5 |
 
-The importer creates the collections and their indexes through `mongo_db.py`. Rerunning it replaces matching sample documents by `_id`. The train crowd and alert features use the saved snapshots and require no LTA API key.
+The importer creates the collections and their indexes through `mongo_db.py`. Rerunning it replaces matching sample documents by `_id`. The train crowd and alert features use these saved snapshots.
 
 ### 5.4 Check your data
 
 In MongoDB Compass, open the database named by `MONGO_DB` and check the **Documents** and **Indexes** tabs for both collections. After starting Flask (section 6), open `http://localhost:5000/crowd-dashboard` to view crowd levels, busy-hour summaries and the latest saved service alert.
 
-### 5.5 Load the bus arrival sample data (no API key needed)
+### 5.5 Load the bus arrival sample data
 
-Bus arrival monitoring uses saved snapshots from the LTA DataMall Bus Arrival API. A snapshot of every service at each of 10 bus stops was taken about every 15 minutes from 31 Oct to 8 Nov 2026 (with a few gaps), giving 3,417 snapshots. They are stored in `database/nosql/sample_data/BusArrival.zip`.
+Bus arrival monitoring uses saved snapshots of LTA DataMall bus arrival data. A snapshot of every service at each of 10 bus stops was taken about every 15 minutes from 31 Oct to 8 Nov 2026 (with a few gaps), giving 3,417 snapshots. They are stored in `database/nosql/sample_data/BusArrival.zip`.
 
 From the project root, run:
 
@@ -365,10 +354,6 @@ Notes:
 - On the test page, a snapshot older than 15 minutes shows the arrival times as they were recorded, with the date and time it was taken.
 - **Warning:** `DELETE /api/bus-arrivals/old?days=7` counts from today, so it deletes all of the sample data. If that happens, run `bus_arrival_sample_import.py` again.
 
-#### Optional: collect live bus arrivals
-
-`database/scripts/bus_arrival_import.py` fetches the current arrivals for the 10 stops from LTA DataMall and adds one snapshot per stop each time it runs. It needs `LTA_ACCOUNT_KEY` in `backend/.env`. The app does not run it automatically, and it is not needed for the rest of the project.
-
 ---
 
 ## 6. Run the app
@@ -388,11 +373,7 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | Problem | Fix |
 |---|---|
 | `ModuleNotFoundError: mysql` | Run section 3 again, using the same Python that runs the script |
-| `ModuleNotFoundError: No module named 'requests'` | Run section 3 |
 | `ModuleNotFoundError: No module named 'pymongo'` | Run section 3 |
-| MongoDB scripts fail on the LTA call | Check `LTA_ACCOUNT_KEY` in `backend/.env`. The bus JSON importer does not use an API key. |
-| LTA API returns 401 or 403 | Check the API key and access permissions |
-| LTA API returns 429 | Reduce request frequency and retry later |
 | `Table ... doesn't exist` | Execute the database creation and schema scripts first (section 5.1) |
 | `Table ... StationConnection doesn't exist` | Run `train_schema.sql` before `train_view.sql` |
 | `View ... doesn't exist` | Run `train_view.sql` (section 5.5) |
@@ -437,8 +418,6 @@ The server starts at `http://localhost:5000`. Leave the terminal open while you 
 | Test records disappear after running the bus importer | The importer clears and repopulates all three bus tables. Create fresh test records after importing. |
 | A successful write is followed by a read error | The write may already be committed. Read the record before retrying Create to avoid a duplicate-key error. |
 
-## 8. LTA data and API key security
+## 8. LTA data
 
-- **The sample-data setup runs without an LTA DataMall API key.** The optional live bus tools use a key to request fresh data from LTA. Keep credentials private and exclude `backend/.env` from submission archives.
 - **What the data contains.** The saved LTA data is public transport information: bus stops, services, routes, arrival times, bus load and bus type, plus train crowd levels and service alerts. It contains no personal data. It is used for this academic project under the LTA DataMall terms of use.
-- **If a key is exposed** (for example in a screenshot or chat), request a new key from LTA DataMall and update your own `.env`.

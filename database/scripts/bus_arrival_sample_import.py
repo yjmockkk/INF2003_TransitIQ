@@ -7,7 +7,7 @@ from bson import json_util
 from mongo_db import connect_database
 
 # Loads the saved bus arrival snapshots (31 Oct to 8 Nov 2026) into MongoDB.
-# No LTA API key or internet connection is needed.
+# Everything it needs is in the repository; no internet connection is needed.
 SAMPLE_ZIP = (
     Path(__file__).resolve().parents[1]
     / "nosql"
