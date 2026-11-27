@@ -29,6 +29,18 @@ def handle_database_error(error):
 # Bus Information APIs (READ)
 # ----------------------------------------------
 
+# Retrieve the total number of bus stops for the dashboard.
+# Example: /api/bus/stats
+@bp.get("/stats")
+def bus_stats():
+    row = db.query("""
+        SELECT COUNT(*) AS total_bus_stops
+        FROM BusStop
+    """, one=True)
+
+    return jsonify(row)
+
+
 # Search bus stops by code, road name or description.
 # Example: /api/bus/stops?q=orchard
 @bp.get("/stops")
