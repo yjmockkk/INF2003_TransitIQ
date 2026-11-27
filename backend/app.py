@@ -8,7 +8,6 @@ from routes.crowd import bp as crowd_bp
 from routes.bus_arrival import bp as bus_arrival_bp
 from routes.bus_analysis import bus_analysis_bp
 
-from crowd_alert_import_scheduler import start_collector
 
 app = Flask(
     __name__,
@@ -42,9 +41,4 @@ def crowd_dashboard():
 
 
 if __name__ == "__main__":
-    stop_event = start_collector()
-
-    try:
-        app.run(port=5000, debug=True, use_reloader=False)
-    finally:
-        stop_event.set()
+    app.run(port=5000, debug=True, use_reloader=False)
