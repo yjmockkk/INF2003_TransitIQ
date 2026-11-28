@@ -6,7 +6,6 @@
 
     <title>TransitIQ API Tester</title>
 
-    <!-- Keep your existing API tester stylesheet path here. -->
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/main_style.css', v=2) }}"
@@ -422,8 +421,8 @@
           </p>
         </div>
 
+        <!-- BUS ARRIVALS -->
         <div class="tester-grid">
-          <!-- BUS ARRIVALS -->
           <section class="tester-card card-wide">
             <h3>Bus arrivals</h3>
 
@@ -2156,7 +2155,6 @@ async function loadStationCount() {
   }
 }
 
-// /api/bus/stops is capped at 50 rows, so use the stats route instead.
 async function loadBusStopCount() {
   try {
     const json = await fetchJson("GET", "/api/bus/stats");
