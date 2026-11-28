@@ -9,12 +9,13 @@
     <!-- Keep your existing API tester stylesheet path here. -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/main_style.css') }}"
+      href="{{ url_for('static', filename='css/main_style.css', v=2) }}"
     />
   </head>
 
   <body class="api-tester">
     <header class="page-header">
+      <span class="line-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <h1>TransitIQ API Tester - Group 14</h1>
     </header>
 
@@ -53,8 +54,71 @@
           >
             Station Crowd
           </button>
+
+          <button
+            type="button"
+            onclick="showTab('bus'); document.getElementById('arr_stop').focus()"
+          >
+            Bus Arrivals
+          </button>
         </div>
       </div>
+
+      <!-- NETWORK AT A GLANCE -->
+      <section class="glance" aria-labelledby="glance-heading">
+        <h2 id="glance-heading">The network at a glance</h2>
+        <p class="glance-sub">What is in the TransitIQ database right now.</p>
+
+        <div class="stat-grid">
+         <div class="stat">
+          <span class="status-pill" id="g-status">Checking…</span>
+          <span>Train service status</span>
+          <small id="g-status-note">Loading the latest alert…</small>
+        </div>
+
+          <div class="stat">
+            <strong id="g-stations">–</strong>
+            <span>MRT and LRT stations</span>
+            <small>On <span class="stat-inline" id="g-lines">–</span> lines, in MySQL</small>
+          </div>
+
+          <div class="stat">
+            <strong id="g-bus-stops">–</strong>
+            <span>Bus stops</span>
+            <small>In MySQL</small>
+          </div>
+
+          <div class="stat">
+            <strong id="g-crowd">–</strong>
+            <span>Latest crowd readings</span>
+            <small>One per station, in MongoDB</small>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="panel">
+            <h3>Stations on each line</h3>
+            <p>Each bar uses the line's own colour.</p>
+            <div id="g-line-bars"><p class="empty-note">Loading…</p></div>
+          </div>
+
+          <div class="panel">
+            <h3>Bus services by operator</h3>
+            <p>Share of bus services run by each operator.</p>
+
+            <div class="pie-wrap">
+              <div
+                class="pie"
+                id="g-op-pie"
+                role="img"
+                aria-label="Pie chart of bus services by operator"
+              ></div>
+              <ul class="pie-legend" id="g-op-legend"></ul>
+            </div>
+          </div>
+
+        </div>
+      </section>
 
       <!-- TRAIN CONTROLS -->
       <section id="train-panel" aria-labelledby="train-heading">
@@ -191,7 +255,7 @@
           </section>
 
           <!-- ROUTE PLANNER -->
-          <section class="tester-card card-wide">
+          <section class="tester-card">
             <h3>Route planner</h3>
 
             <p class="card-description">
@@ -245,7 +309,7 @@
           </section>
 
           <!-- NETWORK ANALYTICS -->
-          <section class="tester-card card-wide">
+          <section class="tester-card">
             <h3>Network analytics</h3>
 
             <p class="card-description">
@@ -436,7 +500,7 @@
           </section>
 
           <!-- BUS ROUTE LOOKUP -->
-          <section class="tester-card card-wide">
+          <section class="tester-card">
             <h3>Find a bus route</h3>
 
             <p class="card-description">
@@ -470,7 +534,7 @@
           </section>
 
           <!-- BUS ANALYSIS -->
-          <section class="tester-card card-wide">
+          <section class="tester-card">
             <h3>Direct connections</h3>
 
             <p class="card-description">
@@ -503,7 +567,7 @@
             </div>
           </section>
 
-          <section class="tester-card card-wide">
+          <section class="tester-card">
             <h3>Bus network analysis</h3>
 
             <p class="card-description">
@@ -1534,7 +1598,7 @@
         if (!bus || bus.minutes_away == null) return "";
 
         const mins = Math.round(bus.minutes_away - ageMin);
-        const time = mins <= 0 ? "Arr" : mins + " min";
+        const time = mins > 180 ? "—" : mins <= 0 ? "Arr" : mins + " min";
 
         const load = LOAD_INFO[bus.load] || {
           cls: "ld-na",
@@ -1922,6 +1986,309 @@
           }
         });
       }
+
+   // NETWORK AT A GLANCE
+
+const LINE_COLOURS = {
+  NSL: "var(--nsl)", EWL: "var(--ewl)", CG: "var(--ewl)",
+  NEL: "var(--nel)", CCL: "var(--ccl)", CE: "var(--ccl)",
+  DTL: "var(--dtl)", TEL: "var(--tel)"
+};
+
+// Brand colours used.
+const OPERATOR_BRANDS = {
+  SBST: "#781D7E", // SBS Transit
+  SMRT: "#d42e12", // SMRT
+  TTS:  "#3A8B4B", // Tower Transit 
+  GAS:  "#FFC20E"  // Go-Ahead Singapore
+};
+
+function operatorColour(name, index) {
+  return (
+    OPERATOR_BRANDS[String(name).toUpperCase()] ||
+    OPERATOR_COLOURS[index % OPERATOR_COLOURS.length]
+  );
+}
+
+function rowsOf(json) {
+  const data = json?.data;
+
+  if (Array.isArray(data)) return data;
+
+  if (data && typeof data === "object") {
+    return Object.entries(data).map(([key, value]) =>
+      value !== null && typeof value === "object" && !Array.isArray(value)
+        ? { key, ...value }
+        : { key, value }
+    );
+  }
+
+  return [];
+}
+
+function labelOf(row) {
+  return String(
+    row.line_name ?? row.line_code ?? row.line ??
+    row.operator ?? row.name ?? row.key ?? ""
+  );
+}
+
+function countOf(row) {
+  for (const [key, value] of Object.entries(row)) {
+    if (/code|name|(^|_)id$|^key$|^line$|operator|colou?r/i.test(key)) continue;
+
+    if (Array.isArray(value)) return value.length;
+
+    if (value !== "" && value !== null && typeof value !== "object") {
+      const n = Number(value);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+
+  return 0;
+}
+
+function setText(id, value) {
+  document.getElementById(id).textContent =
+    typeof value === "number" ? value.toLocaleString("en-SG") : value;
+}
+
+// Pass one number per hour, starting at startHour. The tallest bar is highlighted.
+function drawHours(values, startHour = 0, unit = "") {
+  const box = document.getElementById("g-hours");
+  const top = Math.max(...values, 0);
+
+  box.replaceChildren();
+
+  if (!top) {
+    box.innerHTML =
+      '<p class="empty-note">No High-crowd readings for this station.</p>';
+    return;
+  }
+
+  values.forEach((value, index) => {
+    const bar = document.createElement("i");
+    bar.style.height = Math.max(2, (value / top) * 100) + "%";
+    bar.title =
+      String(startHour + index).padStart(2, "0") + ":00 – " +
+      value.toFixed(1) + unit;
+    if (value === top) bar.className = "peak";
+    box.appendChild(bar);
+  });
+}
+
+// Pass e.g. [{ name: "SBS Transit", count: 389, colour: "#1f5fd0" }]
+function drawOperators(ops) {
+  const pie = document.getElementById("g-op-pie");
+  const legend = document.getElementById("g-op-legend");
+  const sum = ops.reduce((a, o) => a + o.count, 0);
+
+  if (!sum) {
+    pie.style.background = "";
+    legend.innerHTML = '<li class="empty-note">No operator data.</li>';
+    return;
+  }
+
+  let start = 0;
+
+  const slices = ops.map((o) => {
+    const from = start;
+    start += (o.count / sum) * 100;
+    return `${o.colour} ${from}% ${start}%`;
+  });
+
+  pie.style.background = `conic-gradient(${slices.join(", ")})`;
+
+  legend.innerHTML = ops
+    .map((o) =>
+      `<li>` +
+      `<span class="swatch" style="background:${o.colour}"></span>` +
+      `${escHtml(o.name)}` +
+      `<b>${o.count}</b>` +
+      `<span class="share">${((o.count / sum) * 100).toFixed(1)}%</span>` +
+      `</li>`
+    )
+    .join("");
+}
+
+async function loadLineBars() {
+  const box = document.getElementById("g-line-bars");
+
+  try {
+    const json = await fetchJson("GET", "/api/train/analytics/line-sizes");
+    const rows = rowsOf(json);
+
+    if (!rows.length) throw new Error("No rows returned.");
+
+    const max = Math.max(...rows.map(countOf), 1);
+
+    box.replaceChildren();
+    setText("g-lines", rows.length);
+
+    rows.forEach((row) => {
+      const code = String(row.line_code ?? row.line ?? row.key ?? "");
+      const bar = document.createElement("div");
+      bar.className = "bar-row";
+
+      bar.innerHTML =
+        `<span>${escHtml(labelOf(row))}</span>` +
+        `<div><i style="width:${(countOf(row) / max) * 100}%;` +
+        `--bar:${LINE_COLOURS[code] || "var(--lrt)"}"></i></div>` +
+        `<span>${countOf(row)}</span>`;
+
+      box.appendChild(bar);
+    });
+  } catch (error) {
+    box.innerHTML =
+      '<p class="empty-note">Could not load line sizes: ' +
+      escHtml(error.message) + "</p>";
+  }
+}
+
+// One row per station code, so interchanges count once for each line code.
+async function loadStationCount() {
+  try {
+    const json = await fetchJson("GET", "/api/train/stations");
+    setText("g-stations", rowsOf(json).length);
+  } catch (error) {
+    setText("g-stations", "n/a");
+    console.warn("Station count failed:", error);
+  }
+}
+
+// /api/bus/stops is capped at 50 rows, so use the stats route instead.
+async function loadBusStopCount() {
+  try {
+    const json = await fetchJson("GET", "/api/bus/stats");
+    const total = json.total_bus_stops ?? json.data?.total_bus_stops;
+    setText("g-bus-stops", total != null ? Number(total) : "n/a");
+  } catch (error) {
+    setText("g-bus-stops", "n/a");
+    console.warn("Bus stop count failed:", error);
+  }
+}
+
+// One latest reading per station and line.
+async function loadCrowdCount() {
+  try {
+    const json = await fetchJson("GET", "/api/crowd/latest");
+    setText("g-crowd", json.count ?? rowsOf(json).length);
+  } catch (error) {
+    setText("g-crowd", "n/a");
+    console.warn("Crowd count failed:", error);
+  }
+}
+
+async function loadServiceStatus() {
+  const pill = document.getElementById("g-status");
+  const note = document.getElementById("g-status-note");
+
+  try {
+    const json = await fetchJson("GET", "/api/crowd/alerts/latest");
+    const alert = json.data;
+
+    if (!alert) {
+      pill.textContent = "No data";
+      pill.classList.remove("bad");
+      note.textContent = "No train service alert has been saved yet.";
+      return;
+    }
+
+    const normal = alert.status === "1";
+
+    pill.textContent = normal ? "Normal service" : "Service disrupted";
+    pill.classList.toggle("bad", alert.status === "2");
+
+    const first = (alert.messages || [])[0];
+    const text =
+      first && typeof first === "object"
+        ? (first.Content ?? JSON.stringify(first))
+        : first;
+
+    note.textContent =
+      text ||
+      (normal
+        ? "No disruptions on any line in the saved alerts."
+        : alert.status_label);
+  } catch (error) {
+    pill.textContent = "Unavailable";
+    note.textContent = "Could not load the latest alert.";
+    console.warn("Service status failed:", error);
+  }
+}
+
+async function loadOperators() {
+  try {
+    const json = await fetchJson("GET", "/api/bus/analysis/operator-comparison");
+
+    drawOperators(
+      rowsOf(json)
+        .map((row, index) => ({
+          name: labelOf(row),
+          count: countOf(row),
+          colour: operatorColour(labelOf(row), index)        
+        }))
+        .filter((o) => o.count > 0)
+    );
+  } catch (error) {
+    console.warn("Operators failed:", error);
+  }
+}
+
+// High-crowd share by hour for one station, combined across its lines.
+async function loadBusyHours() {
+  const box = document.getElementById("g-hours");
+  const code = document.getElementById("g-hour-station").value
+    .trim()
+    .toUpperCase();
+
+  if (!code) {
+    box.innerHTML = '<p class="empty-note">Enter a station code.</p>';
+    return;
+  }
+
+  box.innerHTML = '<p class="empty-note">Loading…</p>';
+
+  try {
+    const json = await fetchJson(
+      "GET",
+      "/api/crowd/busy-hours?station_code=" + encodeURIComponent(code)
+    );
+
+    const valid = new Array(24).fill(0);
+    const high = new Array(24).fill(0);
+
+    (json.data || []).forEach((row) => {
+      valid[row.hour] += row.valid_readings;
+      high[row.hour] += row.high_readings;
+    });
+
+    // The backend only analyses 06:00 to 23:59.
+    const values = [];
+    for (let hour = 6; hour < 24; hour++) {
+      values.push(valid[hour] ? (high[hour] / valid[hour]) * 100 : 0);
+    }
+
+    drawHours(values, 6, "% High");
+  } catch (error) {
+    box.innerHTML =
+      '<p class="empty-note">Could not load busy hours: ' +
+      escHtml(error.message) + "</p>";
+  }
+}
+
+function initGlance() {
+
+  loadServiceStatus();
+  loadLineBars();
+  loadStationCount();
+  loadBusStopCount();
+  loadCrowdCount();
+  loadOperators();
+  loadBusyHours();
+}
+
+initGlance();
     </script>
   </body>
 </html>
